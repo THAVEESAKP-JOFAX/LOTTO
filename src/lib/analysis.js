@@ -145,3 +145,23 @@ export function summary(draws) {
     chiFirstPositions: positional(draws, GAMES.first).map(chiSquareUniform),
   };
 }
+
+// จำนวนครั้งที่เลข 0–9 ออกในแต่ละหลัก (สถิติหวยแยกตามหลัก)
+// 2 ตัวบน = 2 หลักท้ายรางวัลที่ 1 · 2 ตัวล่าง = เลขท้าย 2 ตัว · 3 ตัวบน = 3 หลักท้ายรางวัลที่ 1
+export const PLACE_STATS = [
+  { key: 'top2', label: 'เลข 2 ตัวบน', note: '2 หลักท้ายของรางวัลที่ 1', value: (d) => d.first.slice(4) },
+  { key: 'bottom2', label: 'เลขท้าย 2 ตัว (2 ตัวล่าง)', note: 'เลขท้าย 2 ตัว', value: (d) => d.last2 },
+  { key: 'top3', label: 'เลข 3 ตัวบน', note: '3 หลักท้ายของรางวัลที่ 1', value: (d) => d.first.slice(3) },
+];
+const PLACE_NAMES = ['ร้อย', 'สิบ', 'หน่วย'];
+
+export function digitsByPlace(draws, value) {
+  const len = value(draws[0]).length;
+  const rows = Array.from({ length: len }, (_, p) => ({ label: PLACE_NAMES[3 - len + p], counts: new Array(10).fill(0) }));
+  for (const d of draws) {
+    const v = value(d);
+    for (let p = 0; p < len; p++) rows[p].counts[v.charCodeAt(p) - 48]++;
+  }
+  const total = Array.from({ length: 10 }, (_, dgt) => rows.reduce((s, r) => s + r.counts[dgt], 0));
+  return { rows, total, draws: draws.length };
+}

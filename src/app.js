@@ -3,7 +3,7 @@ import {
   Chart, LineController, LineElement, PointElement, BarController, BarElement, DoughnutController, ArcElement,
   LinearScale, CategoryScale, Filler, Tooltip, Legend,
 } from 'chart.js';
-import { GAMES, frequency, gaps, positional, summary, pad } from './lib/analysis.js';
+import { GAMES, frequency, gaps, positional, summary, pad, PLACE_STATS, digitsByPlace } from './lib/analysis.js';
 import { BOTS, pick, explain, adaptiveReport } from './lib/bots.js';
 import { mulberry32, randomSeed } from './lib/rng.js';
 import { theoreticalReturn, TICKET_PRICE } from './lib/prizes.js';
@@ -137,6 +137,33 @@ export function renderPosMap(el, m, labels) {
       const a = 0.06 + 0.84 * ((c - min) / (max - min || 1));
       return `<div class="cell" style="background:rgba(91,108,240,${a.toFixed(3)});color:${a > 0.55 ? '#fff' : INK.text}" title="${labels[p]} หลัก ${d}: ${c} ครั้ง">${c}</div>`;
     }).join('')).join('');
+}
+
+// ---------- สถิติหวยแยกตามหลัก (2 ตัวบน / 2 ตัวล่าง / 3 ตัวบน) ----------
+export function renderPlaces(draws) {
+  const range = `${fmtDate(draws[0].date)} – ${fmtDate(draws.at(-1).date)} (${draws.length} งวด)`;
+  $('#places').innerHTML = PLACE_STATS.map((st) => {
+    const { rows, total } = digitsByPlace(draws, st.value);
+    const cells = (counts, cls = '') => {
+      const max = Math.max(...counts), min = Math.min(...counts);
+      return counts.map((c) => {
+        const a = 0.04 + 0.5 * ((c - min) / (max - min || 1));
+        return `<td class="num ${cls}${c === max ? ' top' : ''}" style="background:rgba(91,108,240,${a.toFixed(3)})">${c}</td>`;
+      }).join('');
+    };
+    return `
+      <div class="card place-card">
+        <h3>${st.label}</h3>
+        <p class="note">${st.note} · ${range}</p>
+        <div class="table-wrap"><table class="table place-table">
+          <thead><tr><th>หลัก</th>${[...Array(10).keys()].map((d) => `<th><span class="w">เลข </span>${d}</th>`).join('')}</tr></thead>
+          <tbody>
+            ${rows.map((r) => `<tr><th scope="row">${r.label}</th>${cells(r.counts)}</tr>`).join('')}
+            <tr class="sum"><th scope="row">รวม</th>${cells(total)}</tr>
+          </tbody>
+        </table></div>
+      </div>`;
+  }).join('');
 }
 
 // ---------- lottery 6 digits ----------

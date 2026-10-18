@@ -357,3 +357,24 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .donut-legend b { margin-left: auto; font: 600 20px var(--display); font-variant-numeric: lining-nums tabular-nums; }
 .donut-legend small { color: var(--muted); font-size: 12px; }
 @media (max-width: 720px) { .donut-wrap { grid-template-columns: 1fr; } .donut-box { height: 260px; } }
+
+/* ---------- สถิติตามหลัก ---------- */
+.places { display: grid; gap: 20px; }
+.place-card h3 { margin-bottom: 2px; }
+.place-table th, .place-table td { text-align: center; }
+.place-table thead th { font-size: 12.5px; }
+.place-table tbody th { color: var(--muted); font-weight: 600; font-size: 14px; text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.place-table td { font: 600 17px var(--display); font-variant-numeric: lining-nums tabular-nums; border-left: 2px solid var(--surface, #fff); }
+.place-table td.top { font-weight: 800; color: var(--accent); }
+.place-table tr.sum th, .place-table tr.sum td { border-top: 1px solid var(--line-strong); }
+.place-table tr.sum th { color: var(--text); }
+.place-table tr:hover td { filter: brightness(.97); }
+@media (max-width: 560px) {
+  .place-card .table-wrap { overflow-x: visible; }
+  .place-table { table-layout: fixed; font-size: 13px; }
+  .place-table .w { display: none; }
+  .place-table th, .place-table td { padding: 8px 0; }
+  .place-table tbody th { padding: 8px 4px 8px 0; font-size: 12.5px; width: 38px; }
+  .place-table thead th:first-child { width: 38px; font-size: 11px; }
+  .place-table td { font-size: 14px; border-left-width: 1px; }
+}

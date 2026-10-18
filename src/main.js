@@ -1,7 +1,7 @@
 // หน้าเว็บปกติ: สถิติ + ตรวจรางวัล · ส่วน Bot / ทดสอบเลข / Backtest แสดงเมื่อเปิดจากหน้า Admin
 import './styles.css';
 import {
-  $, load, renderHero, renderKpis, renderHuay, renderLottery, renderHistory, renderTicket,
+  $, load, renderHero, renderKpis, renderPlaces, renderHuay, renderLottery, renderHistory, renderTicket,
   renderBots, runBot, renderChecker, renderBacktest, segmented, bindSeg, huay,
 } from './app.js';
 import { GAMES } from './lib/analysis.js';
@@ -19,6 +19,7 @@ Promise.all([load(), publicSettings()]).then(([{ draws, backtest }, show]) => {
   renderHero(draws);
   renderTicket(draws);
   renderKpis(draws);
+  renderPlaces(draws);
   segmented($('#huay-game'), ['last2', 'front3', 'last3'].map((k) => [k, GAMES[k].label]), huay.game, (v) => { huay.game = v; renderHuay(draws); });
   bindSeg($('#heat-metric'), (v) => { huay.metric = v; renderHuay(draws); });
   renderHuay(draws);

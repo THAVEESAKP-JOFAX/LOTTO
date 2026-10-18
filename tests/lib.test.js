@@ -128,3 +128,13 @@ test('AI ปรับตัว: ใช้เฉพาะข้อมูลก่
   const p2 = pick('adaptive', mutated.slice(0, 120), GAMES.last2, 5, 'analyze', mulberry32(1));
   assert.deepEqual(p1, p2);
 });
+
+test('สถิติตามหลัก: นับครบทุกงวด และสิบ/หน่วยของ 3 ตัวบน = 2 ตัวบน', async () => {
+  const { PLACE_STATS, digitsByPlace } = await import('../src/lib/analysis.js');
+  const [top2, bottom2, top3] = PLACE_STATS.map((s) => digitsByPlace(data, s.value));
+  assert.deepEqual(top2.rows.map((r) => r.label), ['สิบ', 'หน่วย']);
+  assert.deepEqual(top3.rows.map((r) => r.label), ['ร้อย', 'สิบ', 'หน่วย']);
+  for (const r of [...top2.rows, ...bottom2.rows, ...top3.rows]) assert.equal(r.counts.reduce((a, b) => a + b, 0), data.length);
+  assert.deepEqual(top3.rows.slice(1).map((r) => r.counts), top2.rows.map((r) => r.counts));
+  assert.equal(top2.total.reduce((a, b) => a + b, 0), data.length * 2);
+});
