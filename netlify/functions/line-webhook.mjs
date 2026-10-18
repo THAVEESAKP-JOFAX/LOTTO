@@ -52,11 +52,17 @@ export default async (req, context) => {
     return new Response('invalid signature', { status: 401 });
   }
   const { events = [] } = JSON.parse(raw);
+  if (!events.length) console.log('line-webhook verify/empty request');
   const work = (async () => {
     for (const ev of events) {
       try {
         const messages = await handleEvent(ev, process.env.URL);
-        if (messages && ev.replyToken) await reply(ev.replyToken, messages);
+        // log เฉพาะชนิดเหตุการณ์และผลลัพธ์ ไว้ไล่ปัญหาใน Netlify → Logs → Functions
+        console.log(`line-webhook ${ev.type}/${ev.message?.type ?? '-'} from ${ev.source?.type ?? '-'} → ${messages ? `reply ${messages.length} msg` : 'no reply (ไม่ใช่คำสั่ง)'}`);
+        if (messages && ev.replyToken) {
+          await reply(ev.replyToken, messages);
+          console.log('line-webhook reply sent');
+        }
       } catch (err) {
         console.error('line-webhook', err);
       }
