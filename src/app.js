@@ -52,7 +52,7 @@ export async function load() {
 }
 
 // ---------- hero ----------
-export function renderHero(draws, val) {
+export function renderHero(draws) {
   const last = draws.at(-1);
   $('#hero-lede').textContent =
     `ข้อมูล ${draws.length} งวด ตั้งแต่ ${fmtDate(draws[0].date)} ถึง ${fmtDate(last.date)} ` +
@@ -67,15 +67,6 @@ export function renderHero(draws, val) {
       <div><span>เลขท้าย 3 ตัว</span><b>${last.last3.join(' · ')}</b></div>
       <div><span>เลขท้าย 2 ตัว</span><b>${last.last2}</b></div>
     </div>`;
-  const v = val.mismatch.filter((m) => m.diff.some((f) => ['first', 'last2', 'front3', 'last3'].includes(f)));
-  $('#validation').innerHTML = `
-    <h3>ความถูกต้องของข้อมูล <span class="badge">ตรวจข้าม 2 แหล่ง</span></h3>
-    <ul>
-      <li>${val.range.draws} งวด (${fmtDate(val.range.from)} – ${fmtDate(val.range.to)})</li>
-      <li>รางวัลที่ 1 / 3 ตัว / 2 ตัว ไม่ตรงกันระหว่างแหล่ง: <b>${v.length}</b> งวด</li>
-      <li>ตรงกันทุกรางวัล ${val.match} งวด · ต่างเฉพาะรางวัลที่ 2–5 บางเลข ${val.mismatch.length} งวด (ยึดข้อมูล GLO)</li>
-      <li>งวดวันพิเศษ (30 ธ.ค., 17 ม.ค. ฯลฯ) เติมจากคลังสำรอง ${val.secondaryOnly.length} งวด</li>
-    </ul>`;
 }
 
 // ---------- overview ----------

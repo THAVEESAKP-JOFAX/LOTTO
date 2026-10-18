@@ -15,8 +15,8 @@ async function publicSettings() {
   }
 }
 
-Promise.all([load(), publicSettings()]).then(([{ draws, backtest, validation }, show]) => {
-  renderHero(draws, validation);
+Promise.all([load(), publicSettings()]).then(([{ draws, backtest }, show]) => {
+  renderHero(draws);
   renderTicket(draws);
   renderKpis(draws);
   segmented($('#huay-game'), ['last2', 'front3', 'last3'].map((k) => [k, GAMES[k].label]), huay.game, (v) => { huay.game = v; renderHuay(draws); });
