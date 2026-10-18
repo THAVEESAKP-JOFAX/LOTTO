@@ -385,10 +385,26 @@ export function renderTicket(draws) {
   const select = $('#ticket-draw');
   select.innerHTML = [...draws].reverse().map((d, i) =>
     `<option value="${d.date}">${fmtDate(d.date)}${i === 0 ? ' (ล่าสุด)' : ''}</option>`).join('');
+  const box = $('#ticket-inputs');
+  const addBtn = $('#ticket-add');
+  const addInput = (focus = false) => {
+    const n = box.children.length + 1;
+    if (n > MAX_TICKETS) return;
+    const input = document.createElement('input');
+    Object.assign(input, { type: 'text', inputMode: 'numeric', maxLength: 6, autocomplete: 'off', placeholder: `กรอกเลขสลาก ใบที่ ${n}` });
+    input.className = 'ticket-input';
+    input.setAttribute('aria-label', `เลขสลาก ใบที่ ${n}`);
+    input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, 6); });
+    box.append(input);
+    addBtn.hidden = box.children.length >= MAX_TICKETS;
+    if (focus) input.focus();
+  };
+  for (let i = 0; i < 5; i++) addInput();
+  addBtn.addEventListener('click', () => addInput(true));
   $('#ticket-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const out = $('#ticket-out');
-    const tickets = parseTickets($('#ticket-input').value);
+    const tickets = parseTickets([...box.querySelectorAll('input')].map((x) => x.value).join(' '));
     if (!tickets.length) { out.innerHTML = `<p class="note">กรอกเลขสลาก 6 หลักอย่างน้อย 1 ใบ (สูงสุด ${MAX_TICKETS} ใบ)</p>`; return; }
     const r = checkTickets(draws, tickets, select.value);
     if (r.error) { out.innerHTML = `<p class="note">${esc(r.error)}</p>`; return; }

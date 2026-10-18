@@ -121,3 +121,32 @@ test('เลขมงคลตามวันเกิด (ทักษา): ก
   assert.ok(r[0].quickReply.items.every((i) => !i.action.label.includes('กลางคืนกลางคืน')));
   assert.match((await handleEvent(ev('เลขประจำวัน'), 'https://x', on))[0].altText, /เลขมงคลคนเกิดวัน/);
 });
+
+test('เลขมงคลตามเดือนเกิด / ปีเกิด และคำสั่ง LINE', async () => {
+  const { parseBirthMonth, monthLucky, parseBirthYear, yearLucky } = await import('../src/lib/lucky-birth.js');
+  assert.deepEqual(parseBirthMonth('ต.ค.'), { month: 10, day: null });
+  assert.deepEqual(parseBirthMonth('ตุลาคม'), { month: 10, day: null });
+  assert.deepEqual(parseBirthMonth('25/10'), { month: 10, day: 25 });
+  assert.deepEqual(parseBirthMonth('25 ต.ค.'), { month: 10, day: 25 });
+  assert.equal(parseBirthMonth('13'), null);
+  assert.equal(parseBirthMonth('xyz'), null);
+  assert.equal(monthLucky({ month: 10, day: 25 }).signs[0].name, 'ตุลย์');
+  assert.equal(monthLucky({ month: 10, day: 5 }).signs[0].name, 'กันย์');
+  assert.equal(monthLucky({ month: 10, day: null }).signs.length, 2);
+  assert.equal(parseBirthYear('2530', 2569), 2530);
+  assert.equal(parseBirthYear('1987', 2569), 2530);
+  assert.equal(parseBirthYear('30', 2569), 2530);
+  assert.equal(parseBirthYear('80', 2569), 2480);
+  assert.equal(parseBirthYear('2600', 2569), null);
+  assert.match(yearLucky(2530).animal, /^เถาะ/);
+  assert.match(yearLucky(2563).animal, /^ชวด/);
+  const { handleEvent } = await import('../netlify/functions/line-webhook.mjs');
+  const ev = (text) => ({ type: 'message', source: { type: 'group', groupId: 'C' }, message: { type: 'text', text } });
+  const on = normalizeSettings({});
+  const m = await handleEvent(ev('เลขเดือนเกิด 25/10'), 'https://x', on);
+  assert.match(m[0].altText, /คนเกิดวันที่ 25 ตุลาคม/);
+  assert.equal(m[0].quickReply.items.length, 11);
+  assert.match((await handleEvent(ev('เลขปีเกิด 1987'), 'https://x', on))[0].altText, /เถาะ/);
+  assert.match((await handleEvent(ev('เลขเดือนเกิด'), 'https://x', on))[0].text, /ตามด้วยเดือน/);
+  assert.match((await handleEvent(ev('เลขปีเกิด'), 'https://x', on))[0].text, /ตามด้วยปี/);
+});

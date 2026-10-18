@@ -47,13 +47,16 @@
       <div class="section-head">
         <p class="eyebrow">ตรวจรางวัล</p>
         <h2>ตรวจรางวัลสลากกินแบ่งรัฐบาล</h2>
-        <p class="sub">กรอกเลขสลาก 6 หลัก ได้ครั้งละไม่เกิน 10 ใบ (คั่นด้วยช่องว่าง จุลภาค หรือขึ้นบรรทัดใหม่) แล้วเลือกงวดที่ต้องการตรวจ</p>
+        <p class="sub">กรอกเลขสลาก 6 หลัก ช่องละ 1 ใบ (เพิ่มได้สูงสุด 10 ใบ) แล้วเลือกงวดที่ต้องการตรวจ</p>
       </div>
       <div class="card">
-        <form class="controls" id="ticket-form">
-          <label class="grow">เลขสลาก<textarea id="ticket-input" rows="2" inputmode="numeric" placeholder="เช่น 011781 123456" autocomplete="off"></textarea></label>
-          <label>งวด<select id="ticket-draw"></select></label>
-          <button class="btn btn-primary" type="submit">ตรวจรางวัล</button>
+        <form id="ticket-form">
+          <label class="ticket-draw-label">งวด<select id="ticket-draw"></select></label>
+          <div class="ticket-inputs" id="ticket-inputs"></div>
+          <div class="ticket-actions">
+            <button class="btn btn-ghost" type="button" id="ticket-add">+ เพิ่มช่อง</button>
+            <button class="btn btn-primary" type="submit">ตรวจรางวัล</button>
+          </div>
         </form>
         <div id="ticket-out" class="ticket-out" aria-live="polite"></div>
       </div>

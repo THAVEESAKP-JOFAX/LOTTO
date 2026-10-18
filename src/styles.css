@@ -293,6 +293,16 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .controls .grow { flex: 1 1 280px; }
 .controls .grow textarea { width: 100%; }
 #ticket-draw { min-width: 200px; }
+.ticket-draw-label { display: inline-grid; gap: 6px; color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+.ticket-inputs { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.ticket-input {
+  width: 100%; text-align: center; background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--line-strong); border-radius: 10px; padding: 12px;
+  font: 600 22px var(--display); letter-spacing: .12em; font-variant-numeric: lining-nums tabular-nums;
+}
+.ticket-input::placeholder { font: 400 15px var(--sans); letter-spacing: 0; color: var(--muted); }
+.ticket-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.ticket-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 .btn-sm { padding: 7px 14px; font-size: 13px; }
 
 /* ---------- ตรวจรางวัล ---------- */

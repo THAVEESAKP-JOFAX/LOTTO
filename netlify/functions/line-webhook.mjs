@@ -2,10 +2,11 @@
 // ตั้ง Webhook URL ใน LINE Developers เป็น https://<เว็บ>/api/line/webhook
 import { verifySignature, reply, markAsRead } from '../lib/line.mjs';
 import { loadDraws } from '../lib/data.mjs';
-import { picksMessage, resultMessage, checkText, twoDigitMessage, threeDigitMessage, floatMessage, ticketCheckMessage, drawQuickReply, luckyDayMessage, TICKET_HELP, HELP_TEXT } from '../../src/lib/line-messages.js';
+import { picksMessage, resultMessage, checkText, twoDigitMessage, threeDigitMessage, floatMessage, ticketCheckMessage, drawQuickReply, luckyDayMessage, birthMonthMessage, birthYearMessage, BIRTH_HELP, TICKET_HELP, HELP_TEXT } from '../../src/lib/line-messages.js';
 import { getSettings } from '../lib/settings.mjs';
 import { parseTickets } from '../../src/lib/ticket-check.js';
 import { parseDay, dayOf } from '../../src/lib/lucky-day.js';
+import { parseBirthMonth, parseBirthYear } from '../../src/lib/lucky-birth.js';
 import { upcomingDraw, todayInThailand } from '../../src/lib/schedule.js';
 import { parseDrawDate, drawQuery } from '../../src/lib/date-query.js';
 
@@ -37,6 +38,17 @@ export async function handleEvent(ev, siteUrl, settings = null) {
   if (nextCmd) {
     const draws = await loadDraws(siteUrl);
     return nextCmd[1](upcomingDraw(draws.at(-1).date, todayInThailand()), draws, settings, siteUrl);
+  }
+  // เลขมงคลตามเดือนเกิด / ปีเกิด
+  const monthCmd = compact.match(/^(?:เลขเดือนเกิด|เลขตามเดือนเกิด|เลขประจำเดือนเกิด)(.*)$/);
+  if (monthCmd) {
+    const parsed = parseBirthMonth(monthCmd[1]);
+    return [parsed ? birthMonthMessage(parsed) : BIRTH_HELP.month];
+  }
+  const yearCmd = compact.match(/^(?:เลขปีเกิด|เลขตามปีเกิด|เลขประจำปีเกิด|เลขนักษัตร)(.*)$/);
+  if (yearCmd) {
+    const be = parseBirthYear(yearCmd[1], Number(todayInThailand().slice(0, 4)) + 543);
+    return [be ? birthYearMessage(be) : BIRTH_HELP.year];
   }
   // เลขมงคลตามวันเกิด: "เลขประจำวัน" (วันนี้) หรือ "เลขประจำวัน จันทร์"
   const luckyCmd = compact.match(/^(?:เลขประจำวัน|เลขมงคล|เลขวันเกิด|เลขประจำวันเกิด)(.*)$/);

@@ -7,6 +7,7 @@ import { analyzeNumber } from './checker.js';
 import { floatingDigits } from './floating.js';
 import { checkTickets } from './ticket-check.js';
 import { DAYS, luckyNumbers } from './lucky-day.js';
+import { MONTHS, monthLucky, yearLucky } from './lucky-birth.js';
 import { DEFAULT_SETTINGS } from './settings.js';
 
 const C = {
@@ -164,6 +165,48 @@ export function luckyDayMessage(day, isToday = false) {
   };
 }
 
+// คำสั่ง "เลขเดือนเกิด ต.ค." / "เลขเดือนเกิด 25/10"
+export function birthMonthMessage(parsed) {
+  const m = monthLucky(parsed);
+  const signRows = m.signs.map((sg, i) => row(
+    m.splitDay ? (i === 0 ? `เกิดก่อน ${m.splitDay} ${m.monthName}` : `ตั้งแต่ ${m.splitDay} ${m.monthName}`) : 'ราศี',
+    `ราศี${sg.name} · ดาว${sg.planet} (${sg.lord})`, { size: 'xs' }));
+  const body = [
+    row('เลขเด่น', m.main.join('  '), { color: C.hi, size: 'xl' }),
+    ...signRows,
+    { type: 'separator', margin: 'md', color: C.line },
+    row('เลข 2 ตัว', m.two.join('  '), { color: C.hi }),
+    text('เลขเดือนเกิด + เลขดาวเจ้าราศี (โหราศาสตร์ไทย)', { size: 'xxs', color: C.muted, margin: 'md' }),
+  ];
+  const label = m.day ? `${m.day} ${m.monthName}` : m.monthName;
+  const alt = `เลขมงคลคนเกิด${m.day ? 'วันที่ ' : 'เดือน'}${label}\nเลขเด่น ${m.main.join(' ')}\n2 ตัว: ${m.two.join(' ')}`;
+  return {
+    ...flex(alt, bubble(`คนเกิด${m.day ? 'วันที่ ' : 'เดือน'}${label}`, body, 'เลขมงคลตามเดือนเกิด')),
+    quickReply: { items: MONTHS.filter((_, i) => i + 1 !== m.month).map((name) => ({ type: 'action', action: { type: 'message', label: name, text: `เลขเดือนเกิด ${name}` } })) },
+  };
+}
+
+// คำสั่ง "เลขปีเกิด 2530"
+export function birthYearMessage(be) {
+  const y = yearLucky(be);
+  const body = [
+    row('ปีนักษัตร', `ปี${y.animal}`, { size: 'md' }),
+    row('เลขเด่น', y.main.join('  '), { color: C.hi, size: 'xl' }),
+    { type: 'separator', margin: 'md', color: C.line },
+    row('เลข 2 ตัว', y.two.join('  '), { color: C.hi }),
+    row('เลข 3 ตัว', y.three.join('  ')),
+    text(`เลขลำดับนักษัตร (${y.order}) + เลขจากปี พ.ศ. ${y.be} · เกิด ม.ค.–เม.ย. บางตำรานับเป็นปีนักษัตรก่อนหน้า`, { size: 'xxs', color: C.muted, margin: 'md' }),
+  ];
+  const alt = `เลขมงคลคนเกิดปี พ.ศ. ${y.be} (ปี${y.animal})\nเลขเด่น ${y.main.join(' ')}\n2 ตัว: ${y.two.join(' ')}\n3 ตัว: ${y.three.join(' ')}`;
+  return flex(alt, bubble(`พ.ศ. ${y.be} (ค.ศ. ${y.ad})`, body, 'เลขมงคลตามปีเกิด'));
+}
+
+export const BIRTH_HELP = {
+  month: { type: 'text', text: 'พิมพ์ "เลขเดือนเกิด" ตามด้วยเดือน เช่น เลขเดือนเกิด ต.ค. หรือ เลขเดือนเกิด 25/10 (ใส่วันที่จะได้ราศีที่แม่นขึ้น)',
+    quickReply: { items: MONTHS.map((name) => ({ type: 'action', action: { type: 'message', label: name, text: `เลขเดือนเกิด ${name}` } })).slice(0, 13) } },
+  year: { type: 'text', text: 'พิมพ์ "เลขปีเกิด" ตามด้วยปี เช่น เลขปีเกิด 2530 หรือ เลขปีเกิด 1987 หรือ เลขปีเกิด 30' },
+};
+
 export const TICKET_HELP = 'พิมพ์ "ตรวจรางวัล" ตามด้วยเลข 6 หลัก (ครั้งละไม่เกิน 10 ใบ)\nเช่น ตรวจรางวัล 011781 123456\nเลือกงวด: ตรวจรางวัล 011781 งวด 16/10/69';
 
 // สรุปว่าเลขของ bot งวดนั้นถูกอะไรบ้าง
@@ -223,4 +266,4 @@ export function checkText(draws, raw) {
 
 export const HELP_TEXT =
   'คำสั่ง LOTTO Bot\n• "เลขเด็ด" — เลขของ bot สำหรับงวดถัดไป\n• "เลข2ตัว" — เลขท้าย 2 ตัว\n• "เลข3ตัว" — เลขท้าย 3 ตัว + เลขหน้า 3 ตัว\n' +
-  '• "เลขลอยบน" / "เลขลอยล่าง" — เลขวิ่งหลักเดียว\n• "เลขประจำวัน" หรือ "เลขประจำวัน จันทร์" — เลขมงคลตามวันเกิด\n• "ผลหวย" — ผลงวดล่าสุด\n• "ตรวจรางวัล 011781" — ตรวจสลาก (เลือกงวดได้)\n• "เช็ค 48" — ทดสอบเลขของคุณ\n• "งวด 01/11/26" — เลขหรือผลของงวดนั้น\n• "groupid" — แสดง ID ของกลุ่มนี้';
+  '• "เลขลอยบน" / "เลขลอยล่าง" — เลขวิ่งหลักเดียว\n• "เลขประจำวัน" หรือ "เลขประจำวัน จันทร์" — เลขมงคลตามวันเกิด\n• "เลขเดือนเกิด ต.ค." / "เลขปีเกิด 2530" — เลขมงคลตามเดือน/ปีเกิด\n• "ผลหวย" — ผลงวดล่าสุด\n• "ตรวจรางวัล 011781" — ตรวจสลาก (เลือกงวดได้)\n• "เช็ค 48" — ทดสอบเลขของคุณ\n• "งวด 01/11/26" — เลขหรือผลของงวดนั้น\n• "groupid" — แสดง ID ของกลุ่มนี้';
