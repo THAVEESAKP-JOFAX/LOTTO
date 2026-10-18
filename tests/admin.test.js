@@ -212,3 +212,23 @@ test('เลขประจำวัน / เลขเดือนเกิด /
   assert.match((await ask('เลขประจำเดือน 4'))[0].altText, /เมษายน/);
   assert.match((await ask('เลขปี 1987'))[0].altText, /2530/);
 });
+
+test('ตรวจรางวัลใน LINE: เลข 2–3 ตัว และพิมพ์เลข 6 หลักอย่างเดียว', async () => {
+  const { parseNumbers, checkTickets } = await import('../src/lib/ticket-check.js');
+  assert.deepEqual(parseNumbers('011781 48, 171 1234 ๔๘'), ['011781', '48', '171']);
+  const last = draws.at(-1);
+  const r = checkTickets(draws, [last.last2, last.front3[0], last.last3[0]]);
+  assert.deepEqual(r.results.map((x) => x.prizes), [['เลขท้าย 2 ตัว'], ['เลขหน้า 3 ตัว'], ['เลขท้าย 3 ตัว']]);
+  assert.equal(r.total, 2000 + 4000 + 4000);
+
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ draws }));
+  try {
+    const { handleEvent } = await import('../netlify/functions/line-webhook.mjs');
+    const ask = async (text) => handleEvent({ type: 'message', source: { type: 'group', groupId: 'C' }, message: { type: 'text', text } }, 'https://x', normalizeSettings({}));
+    assert.match((await ask(`ตรวจรางวัล ${last.last2}`))[0].altText, new RegExp(`${last.last2}: เลขท้าย 2 ตัว`));
+    assert.match((await ask(last.first))[0].altText, /รางวัลที่ 1/);
+    assert.match((await ask('ตรวจรางวัล'))[0].text, /เลข 2–3 ตัว/);
+    assert.equal(await ask('โทร 0812345678'), null);
+  } finally { globalThis.fetch = realFetch; }
+});

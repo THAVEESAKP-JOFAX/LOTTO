@@ -1,6 +1,6 @@
 // ส่วนแสดงผลที่ใช้ร่วมกันระหว่างหน้าปกติ (main.js) และหน้า Admin (admin.js)
 import {
-  Chart, LineController, LineElement, PointElement, BarController, BarElement,
+  Chart, LineController, LineElement, PointElement, BarController, BarElement, DoughnutController, ArcElement,
   LinearScale, CategoryScale, Filler, Tooltip, Legend,
 } from 'chart.js';
 import { GAMES, frequency, gaps, positional, summary, pad } from './lib/analysis.js';
@@ -11,7 +11,7 @@ import { nextDrawDate } from './lib/schedule.js';
 import { analyzeNumber } from './lib/checker.js';
 import { parseTickets, checkTickets, MAX_TICKETS } from './lib/ticket-check.js';
 
-Chart.register(LineController, LineElement, PointElement, BarController, BarElement,
+Chart.register(LineController, LineElement, PointElement, BarController, BarElement, DoughnutController, ArcElement,
   LinearScale, CategoryScale, Filler, Tooltip, Legend);
 
 // สีของแต่ละ bot (ผ่านการตรวจ CVD บนพื้นหลังมืดแล้ว) — สีผูกกับ bot ไม่ใช่อันดับ
@@ -19,7 +19,7 @@ const BOT_COLOR = {
   random: '#8a96a3', hot: '#eb6834', cold: '#2a78d6', overdue: '#eda100',
   positional: '#1baf7a', markov: '#6250d6', ensemble: '#e87ba4', bayes: '#008300', adaptive: '#e34948',
 };
-const INK = { text: '#1f2333', muted: '#5c6378', grid: 'rgba(31,35,51,0.07)' };
+const INK = { text: '#1f2333', muted: '#5c6378', grid: 'rgba(31,35,51,0.07)', surface: '#ffffff' };
 Chart.defaults.font.family = "'Anuphan', system-ui, sans-serif";
 Chart.defaults.color = INK.muted;
 
@@ -275,7 +275,7 @@ function precomputed(report, gameKey, mode) {
 
 export function renderBacktest(draws, report) {
   $('#bt-sub').textContent = `ทดสอบย้อนหลังแบบ walk-forward: ทุกงวดให้ bot เห็นเฉพาะข้อมูลก่อนหน้า (เริ่มหลังอุ่นเครื่อง ${report.settings.warmup} งวด) ` +
-    `ซื้อสลากใบละ ${TICKET_PRICE} บาท รับเงินรางวัลตามกองสลาก แล้วเทียบกับการสุ่มล้วน`;
+    `ซื้อสลากใบละ ${TICKET_PRICE} บาท รับเงินรางวัลตามกองสลาก แล้วเทียบกับการสุ่มเลขทั่วไป`;
   segmented($('#bt-game'), Object.values(GAMES).map((g) => [g.key, g.label]), bt.game, (v) => { bt.game = v; update(); });
   bindSeg($('#bt-mode'), (v) => { bt.mode = v; update(); });
   $('#bt-run').addEventListener('click', () => update(true));
@@ -296,36 +296,46 @@ export function renderBacktest(draws, report) {
 function show(res, k) {
   const game = GAMES[bt.game];
   const bots = res.bots;
-  const dates = bots[0].dates;
-  $('#bt-runs').textContent = res.runs;
-  const ds = [
-    { label: 'สุ่ม 95%', data: res.baseline.band.map((b) => b.hi), borderWidth: 0, pointRadius: 0, fill: '+1', backgroundColor: 'rgba(91,108,240,0.12)' },
-    { label: 'สุ่ม 5%', data: res.baseline.band.map((b) => b.lo), borderWidth: 0, pointRadius: 0, fill: false },
-    ...bots.map((b) => ({
-      label: BOTS.find((x) => x.id === b.botId).name,
-      data: b.equity, borderColor: BOT_COLOR[b.botId], backgroundColor: BOT_COLOR[b.botId],
-      borderWidth: b.botId === 'adaptive' ? 3.5 : 2, pointRadius: 0, pointHoverRadius: 5, tension: 0, borderDash: b.botId === 'random' ? [5, 4] : [],
-    })),
-  ];
-  const opts = {
-    maintainAspectRatio: false, animation: { duration: 400 },
-    interaction: { mode: 'index', intersect: false },
-    plugins: {
-      legend: { labels: { filter: (l) => !l.text.startsWith('สุ่ม '), usePointStyle: true, pointStyle: 'line', color: INK.text } },
-      tooltip: {
-        filter: (i) => !i.dataset.label.startsWith('สุ่ม '),
-        itemSort: (a, b) => b.raw - a.raw,
-        callbacks: { title: (i) => fmtDate(dates[i[0].dataIndex]), label: (i) => ` ${i.dataset.label}: ${baht(i.raw)}` },
-      },
-    },
-    scales: {
-      x: { grid: { display: false }, ticks: { maxTicksLimit: 8, callback: (v) => dates[v]?.slice(0, 4) } },
-      y: { grid: { color: INK.grid }, ticks: { callback: (v) => baht(v) } },
+  // โดนัท: จำนวนครั้งที่เลขของแต่ละ bot ตรงกับเลขที่ออกจริง (เรียงมาก → น้อย)
+  const byHits = [...bots].sort((a, b) => b.hits - a.hits);
+  const totalHits = byHits.reduce((s, b) => s + b.hits, 0);
+  const nameOf = (id) => BOTS.find((x) => x.id === id);
+  const ds = [{
+    data: byHits.map((b) => b.hits),
+    backgroundColor: byHits.map((b) => BOT_COLOR[b.botId]),
+    borderColor: INK.surface, borderWidth: 2, hoverOffset: 6,
+  }];
+  const centerText = {
+    id: 'centerText',
+    afterDraw(c) {
+      const { ctx, chartArea: a } = c;
+      const x = (a.left + a.right) / 2; const y = (a.top + a.bottom) / 2;
+      ctx.save(); ctx.textAlign = 'center'; ctx.fillStyle = INK.text;
+      ctx.font = '700 34px "Cormorant Garamond", serif'; ctx.fillText(String(totalHits), x, y + 4);
+      ctx.fillStyle = INK.muted; ctx.font = '500 13px Anuphan, sans-serif'; ctx.fillText('ครั้งที่เลขตรงผลจริง', x, y + 26);
+      ctx.restore();
     },
   };
-  const labels = dates.map((_, i) => i);
-  if (bt.chart) { bt.chart.data = { labels, datasets: ds }; bt.chart.options = opts; bt.chart.update(); }
-  else bt.chart = new Chart($('#equity-chart'), { type: 'line', data: { labels, datasets: ds }, options: opts });
+  const opts = {
+    maintainAspectRatio: false, cutout: '64%', animation: { duration: 400 },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (i) => {
+            const b = byHits[i.dataIndex];
+            return ` ${nameOf(b.botId).name}: ${b.hits} ครั้ง (คาดหวัง ${b.expectedHits.toFixed(1)})`;
+          },
+        },
+      },
+    },
+  };
+  const labels = byHits.map((b) => nameOf(b.botId).name);
+  if (bt.chart) bt.chart.destroy();
+  bt.chart = new Chart($('#equity-chart'), { type: 'doughnut', data: { labels, datasets: ds }, options: opts, plugins: [centerText] });
+  $('#bt-legend').innerHTML = byHits.map((b) => `
+    <li><span class="dot" style="background:${BOT_COLOR[b.botId]}"></span>${nameOf(b.botId).icon} ${nameOf(b.botId).name}
+      <b class="num">${b.hits}</b><small>ครั้ง</small></li>`).join('');
 
   const sorted = [...bots].sort((a, b) => b.profit - a.profit);
   $('#bt-table').innerHTML = `<thead><tr><th>Bot</th><th>ถูก / คาดหวัง</th><th>p-value</th><th>ต้นทุน</th><th>เงินรางวัล</th><th>กำไร/ขาดทุน</th><th>ROI</th><th>เทียบการสุ่ม</th></tr></thead><tbody>` +
@@ -351,7 +361,7 @@ function show(res, k) {
     `bot ที่ผลดีที่สุดคือ ${bestBot.icon} ${bestBot.name} ROI ${pct(best.roi)} — ` +
     (best.profit < 0 ? 'ยังขาดทุน และ' : 'แม้มีกำไรในช่วงนี้ แต่') +
     ` ${sig.length ? `มี ${sig.length} bot ที่ผ่านเกณฑ์นัยสำคัญ (p < ${(0.05 / bots.length).toFixed(3)})` : 'ไม่มี bot ใดถูกบ่อยกว่าการสุ่มอย่างมีนัยสำคัญ (Bonferroni p < ' + (0.05 / bots.length).toFixed(3) + ')'} ` +
-    `ช่วง ROI ของการสุ่มล้วน (5–95%) คือ ${pct(res.baseline.roi.p5)} ถึง ${pct(res.baseline.roi.p95)} — ` +
+    `ช่วง ROI ของการสุ่มเลขทั่วไป (5–95%) คือ ${pct(res.baseline.roi.p5)} ถึง ${pct(res.baseline.roi.p95)} — ` +
     (bots.every((b) => b.luckPercentile > 0.05 && b.luckPercentile < 0.95)
       ? 'ผลของทุก bot อยู่ในกรอบของ “โชค”'
       : 'บาง bot อยู่นอกช่วง 5–95% แต่เมื่อทดสอบหลายกลยุทธ์พร้อมกัน การหลุดกรอบบ้างเป็นเรื่องปกติของความบังเอิญ');

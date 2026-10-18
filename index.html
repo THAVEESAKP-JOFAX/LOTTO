@@ -168,8 +168,11 @@
           <button class="btn btn-ghost" id="bt-run">คำนวณใหม่</button>
           <span class="status" id="bt-status"></span>
         </div>
-        <div class="chart-box tall"><canvas id="equity-chart"></canvas></div>
-        <p class="note">เส้น = กำไร/ขาดทุนสะสม (บาท) · แถบสีอ่อน = ช่วง 5–95% ของการสุ่มล้วน <span id="bt-runs"></span> รอบ</p>
+        <div class="donut-wrap">
+          <div class="chart-box donut-box"><canvas id="equity-chart" aria-label="จำนวนครั้งที่เลขของแต่ละ bot ตรงกับผลจริง"></canvas></div>
+          <ul class="donut-legend" id="bt-legend"></ul>
+        </div>
+        <p class="note">ตัวเลข = จำนวนครั้งที่เลขของแต่ละ bot ตรงกับเลขที่ออกจริง ตลอดช่วงทดสอบ · ชี้ที่ชิ้นโดนัทเพื่อดูค่าคาดหวังถ้าสุ่ม</p>
         <div class="table-wrap"><table class="table" id="bt-table"></table></div>
         <div class="verdict" id="bt-verdict"></div>
       </div>

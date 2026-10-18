@@ -5,7 +5,7 @@ import { loadDraws } from '../lib/data.mjs';
 import { picksMessage, resultMessage, checkText, twoDigitMessage, threeDigitMessage, floatMessage, ticketCheckMessage, drawQuickReply, luckyDayMessage, birthMonthMessage, birthYearMessage, newsMessage, BIRTH_HELP, TICKET_HELP, HELP_TEXT } from '../../src/lib/line-messages.js';
 import { getSettings } from '../lib/settings.mjs';
 import { loadNews } from '../lib/news.mjs';
-import { parseTickets } from '../../src/lib/ticket-check.js';
+import { parseNumbers } from '../../src/lib/ticket-check.js';
 import { parseDay, dayOf, bareDay } from '../../src/lib/lucky-day.js';
 import { parseBirthMonth, parseBirthYear } from '../../src/lib/lucky-birth.js';
 import { upcomingDraw, todayInThailand } from '../../src/lib/schedule.js';
@@ -76,7 +76,7 @@ export async function handleEvent(ev, siteUrl, settings = null) {
     // วันที่ต้องไม่ติดกับตัวเลขข้างหน้า (กันไปกินหลักท้ายของเลขสลาก) · ลองแบบตัวเลขก่อน แล้วค่อยแบบชื่อเดือน
     const dateMatch = rest.match(/(?:งวด\s*)?(?<!\d)(\d{1,2}\s*[/\-.]\s*\d{1,2}\s*[/\-.]\s*\d{2,4})(?!\d)/)
       ?? rest.match(/(?:งวด\s*)?(?<!\d)(\d{1,2}\s*(?!งวด)[ก-๙.]+\s*\d{2,4})(?!\d)/);
-    const tickets = parseTickets(dateMatch ? rest.replace(dateMatch[0], ' ') : rest);
+    const tickets = parseNumbers(dateMatch ? rest.replace(dateMatch[0], ' ') : rest);
     const draws = await loadDraws(siteUrl);
     if (!tickets.length) return [{ type: 'text', text: TICKET_HELP }];
     let date = null;
@@ -87,6 +87,11 @@ export async function handleEvent(ev, siteUrl, settings = null) {
       }
     }
     return [ticketCheckMessage(draws, tickets, date)];
+  }
+  // พิมพ์เลขสลาก 6 หลักอย่างเดียว (1 ใบหรือหลายใบ) → ตรวจกับงวดล่าสุด
+  if (/^[0-9๐-๙]{6}(?:[\s,]+[0-9๐-๙]{6})*$/.test(cmd)) {
+    const draws = await loadDraws(siteUrl);
+    return [ticketCheckMessage(draws, parseNumbers(cmd))];
   }
   if (/^(ผลหวย|ผล|หวยออก|result)$/.test(cmd)) {
     const draws = await loadDraws(siteUrl);

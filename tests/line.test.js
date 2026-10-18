@@ -196,7 +196,7 @@ test('webhook: เลข2ตัว / เลข3ตัว / เลขลอยบ
   const [y, mo, d] = prev.date.split('-');
   const t2 = await ask(`ตรวจรางวัล ${prev.first} งวด ${d}/${mo}/${Number(y) + 543 - 2500}`);
   assert.match(t2[0].altText, /รางวัลที่ 1/);
-  assert.match((await ask('ตรวจรางวัล'))[0].text, /ตามด้วยเลข 6 หลัก/);
+  assert.match((await ask('ตรวจรางวัล'))[0].text, /ตามด้วยเลขสลาก 6 หลัก/);
 });
 
 test('การ์ด LINE ใช้หัว LOTTO-THAI และข้อความผลใช้ชื่อ LOTTO-THAI', async () => {

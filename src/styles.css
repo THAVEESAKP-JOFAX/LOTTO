@@ -350,3 +350,13 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .switch input:checked + span::after { transform: translateX(18px); }
 .switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (max-width: 900px) { .admin-page .topbar nav { display: flex; } }
+
+/* ---------- Backtest: โดนัทจำนวนครั้งที่ถูก ---------- */
+.donut-wrap { display: grid; grid-template-columns: minmax(240px, 340px) 1fr; gap: 24px; align-items: center; margin: 8px 0 4px; }
+.donut-box { height: 300px; }
+.donut-legend { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px 20px; }
+.donut-legend li { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--text); padding: 6px 0; border-bottom: 1px solid var(--line); }
+.donut-legend .dot { margin: 0; }
+.donut-legend b { margin-left: auto; font: 600 20px var(--display); font-variant-numeric: lining-nums tabular-nums; }
+.donut-legend small { color: var(--muted); font-size: 12px; }
+@media (max-width: 720px) { .donut-wrap { grid-template-columns: 1fr; } .donut-box { height: 260px; } }
