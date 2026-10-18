@@ -65,7 +65,7 @@ export function picksMessage(drawDate, draws, siteUrl, settings = DEFAULT_SETTIN
     row('เลขหน้า 3 ตัว', picks.front3.join('  ')),
     row('สลาก 6 หลัก', picks.first.join('  ')),
   ];
-  const alt = `🧠 เลขแนะนำจาก LOTTOTHAI งวด ${thDate(drawDate)}\n2 ตัว: ${picks.last2.join(' ')}\n3 ตัวท้าย: ${picks.last3.join(' ')}\n` +
+  const alt = `🧠 เลขแนะนำจาก LOTTO-THAI งวด ${thDate(drawDate)}\n2 ตัว: ${picks.last2.join(' ')}\n3 ตัวท้าย: ${picks.last3.join(' ')}\n` +
     `3 ตัวหน้า: ${picks.front3.join(' ')}\n6 หลัก: ${picks.first.join(' ')}`;
   return flex(alt, bubble(`งวด ${thDate(drawDate)} · ${botName(botId)}`, body));
 }
@@ -258,12 +258,12 @@ export function resultMessage(d, draws, siteUrl, settings = DEFAULT_SETTINGS) {
     row('เลขท้าย 3 ตัว', d.last3.join('  ')),
     row('เลขท้าย 2 ตัว', d.last2, { color: C.hi, size: 'lg' }),
     { type: 'separator', margin: 'lg', color: C.line },
-    text(any ? `✅ เลขจาก LOTTOTHAI ถูกรางวัล รวม ฿${money.toLocaleString('th-TH')}` : '❌ เลขจาก LOTTOTHAI ไม่ถูกรางวัล',
+    text(any ? `✅ เลขจาก LOTTO-THAI ถูกรางวัล รวม ฿${money.toLocaleString('th-TH')}` : '❌ เลขจาก LOTTO-THAI ไม่ถูกรางวัล',
       { margin: 'lg', weight: 'bold', color: any ? C.good : C.muted }),
-    text(`เลขแนะนำ 2 ตัว (สุ่มจากการ Run Bot): ${picks.last2.join(' ')}${hit.last2.length ? ` (ถูก ${hit.last2.join(', ')})` : ''}`, { size: 'xs', color: C.muted }),
+    text(`เลขที่แนะนำจาก LOTTO-THAI คือเลข ${picks.last2.join(' ')}${hit.last2.length ? ` (ถูก ${hit.last2.join(', ')})` : ''}`, { size: 'xs', color: C.muted }),
   ];
   const alt = `🏆 ผลสลาก ${thDate(d.date)}\nรางวัลที่ 1: ${d.first}\n3 ตัวหน้า: ${d.front3.join(' ')}\n` +
-    `3 ตัวท้าย: ${d.last3.join(' ')}\n2 ตัว: ${d.last2}\n${any ? `เลขจาก LOTTOTHAI ถูก ฿${money}` : 'เลขจาก LOTTOTHAI ไม่ถูกรางวัล'}`;
+    `3 ตัวท้าย: ${d.last3.join(' ')}\n2 ตัว: ${d.last2}\n${any ? `เลขจาก LOTTO-THAI ถูก ฿${money}` : 'เลขจาก LOTTO-THAI ไม่ถูกรางวัล'}`;
   return flex(alt, bubble(`งวด ${thDate(d.date)}`, body, 'ผลสลากกินแบ่งรัฐบาล'));
 }
 
@@ -289,5 +289,5 @@ export function checkText(draws, raw) {
 }
 
 export const HELP_TEXT =
-  'คำสั่ง LOTTO-THAI\n• "เลขเด็ด" — เลขแนะนำจาก LOTTOTHAI สำหรับงวดถัดไป\n• "เลข2ตัว" — เลขท้าย 2 ตัว\n• "เลข3ตัว" — เลขท้าย 3 ตัว + เลขหน้า 3 ตัว\n' +
+  'คำสั่ง LOTTO-THAI\n• "เลขเด็ด" — เลขแนะนำจาก LOTTO-THAI สำหรับงวดถัดไป\n• "เลข2ตัว" — เลขท้าย 2 ตัว\n• "เลข3ตัว" — เลขท้าย 3 ตัว + เลขหน้า 3 ตัว\n' +
   '• "เลขลอยบน" / "เลขลอยล่าง" — เลขวิ่งหลักเดียว\n• "เลขประจำวัน" หรือ "เลขประจำวัน จันทร์" — เลขมงคลตามวันเกิด\n• "เลขเดือนเกิด ต.ค." / "เลขปีเกิด 2530" — เลขมงคลตามเดือน/ปีเกิด\n• "ข่าวดัง" — ตีเลขจากข่าวเด่นล่าสุด\n• "ผลหวย" — ผลงวดล่าสุด\n• "ตรวจรางวัล 011781" — ตรวจสลาก (เลือกงวดได้)\n• "เช็ค 48" — ทดสอบเลขของคุณ\n• "งวด 01/11/26" — เลขหรือผลของงวดนั้น\n• "groupid" — แสดง ID ของกลุ่มนี้';
