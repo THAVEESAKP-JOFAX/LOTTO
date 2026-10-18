@@ -216,6 +216,28 @@ mark { background: rgba(227, 189, 98, .25); color: var(--gold-hi); border-radius
 .status { color: var(--faint); font-size: 13px; }
 #hist-more { margin-top: 16px; }
 .line-actions { margin-top: 16px; }
+#check-input { width: 220px; font: 600 22px var(--mono); letter-spacing: .12em; }
+.check-out { margin-top: 24px; display: grid; gap: 22px; }
+.check-out:empty { display: none; }
+.check-game { display: grid; gap: 16px; padding-top: 6px; }
+.check-game + .check-game { border-top: 1px solid var(--line); padding-top: 22px; }
+.check-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.check-head .num { font: 600 34px var(--mono); letter-spacing: .14em; background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.check-head .tag { color: var(--muted); font-size: 14px; }
+.check-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.check-tiles > div { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.check-tiles span { display: block; color: var(--muted); font-size: 12.5px; }
+.check-tiles b { display: block; font: 700 22px/1.3 var(--serif); margin: 4px 0 2px; }
+.check-tiles small { color: var(--faint); font-size: 12px; }
+.check-tiles .pos { color: var(--good); }
+.check-tiles .neg { color: var(--bad); }
+.rank-bars { display: grid; gap: 6px; }
+.rank-bar { display: grid; grid-template-columns: 150px 1fr 64px; align-items: center; gap: 10px; font-size: 13.5px; }
+.rank-bar .track { height: 8px; border-radius: 4px; background: var(--surface-2); position: relative; overflow: hidden; }
+.rank-bar .track i { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--gold); }
+.rank-bar .track::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
+.rank-bar em { font-style: normal; font-family: var(--mono); color: var(--muted); text-align: right; }
+@media (max-width: 560px) { .rank-bar { grid-template-columns: 110px 1fr 52px; } }
 #line-key { width: min(320px, 100%); }
 .steps { margin: 0; padding-left: 20px; color: var(--muted); font-size: 14.5px; display: grid; gap: 8px; }
 code { font: 500 12.5px var(--mono); background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; color: var(--gold-hi); word-break: break-all; }

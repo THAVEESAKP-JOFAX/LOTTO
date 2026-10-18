@@ -113,3 +113,9 @@ test('line-send: ต้องมีรหัสผู้ดูแล แล้�
   assert.deepEqual(pushes.map((p) => p.body.to), ['Cgroup1', 'Cgroup2']);
   assert.equal(pushes[0].body.messages[0].type, 'flex');
 });
+
+test('webhook: คำสั่ง "เช็ค 48" ตอบผลทดสอบเลข', async () => {
+  await webhook(signed({ events: [{ type: 'message', replyToken: 'r4', source: { type: 'group', groupId: 'Cabc' }, message: { type: 'text', text: 'เช็ค 48' } }] }));
+  const r = calls.find((c) => c.url.endsWith('/reply'));
+  assert.match(r.body.messages[0].text, /ทดสอบเลข 48/);
+});

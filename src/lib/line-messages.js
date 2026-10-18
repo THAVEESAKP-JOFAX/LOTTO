@@ -3,6 +3,7 @@ import { GAMES } from './analysis.js';
 import { BOTS, pick, adaptiveReport } from './bots.js';
 import { mulberry32, hashSeed } from './rng.js';
 import { checkTicket, payout, PRIZES } from './prizes.js';
+import { analyzeNumber } from './checker.js';
 
 const C = { bg: '#0a0b0f', card: '#1a1e28', gold: '#e3bd62', text: '#ece6d6', muted: '#9a9384', good: '#6fcf97' };
 const BOT_ID = 'adaptive';
@@ -107,5 +108,27 @@ export function resultMessage(d, draws, siteUrl) {
   };
 }
 
+// ผลทดสอบเลขแบบข้อความสั้น (คำสั่ง "เช็ค 48" ในกลุ่ม)
+export function checkText(draws, raw) {
+  const r = analyzeNumber(draws, raw);
+  if (r.error) return `❓ ${r.error} เช่น "เช็ค 48"`;
+  const lines = [`🔎 ทดสอบเลข ${r.number}`];
+  for (const g of r.games) {
+    const avg = Math.round(g.avgBotPercentile * 100);
+    lines.push('', `▸ ${g.label}`);
+    lines.push(g.key === 'first'
+      ? `โอกาสถูกรางวัลใดก็ได้ 1 ใน ${g.oneIn.toLocaleString('th-TH')} (รางวัลที่ 1 คือ 1 ใน 1,000,000)`
+      : `โอกาสออกงวดหน้า ${(g.probability * 100).toFixed(1)}% (1 ใน ${g.oneIn.toLocaleString('th-TH')})`);
+    if (g.history) {
+      const h = g.history;
+      lines.push(`10 ปีออก ${h.count} ครั้ง (คาดหวัง ${h.expected.toFixed(1)})${h.lastSeen ? ` · ล่าสุด ${thDate(h.lastSeen)}` : ''}`);
+    }
+    lines.push(`คะแนนจาก bot เฉลี่ย ${avg}/100 · สูงสุด ${g.bots[0].icon} ${g.bots[0].name} ${Math.round(g.bots[0].percentile * 100)}`);
+    lines.push(`ถ้าซื้อทุกงวด: ${g.buy.profit >= 0 ? '+' : '−'}฿${Math.abs(g.buy.profit).toLocaleString('th-TH')} (ถูก ${g.buy.wins} ครั้ง)`);
+  }
+  lines.push('', 'ทุกเลขมีโอกาสเท่ากันทุกงวด · เพื่อความบันเทิง');
+  return lines.join('\n');
+}
+
 export const HELP_TEXT =
-  'คำสั่ง LOTTO Bot\n• "เลขเด็ด" — เลขของ AI สำหรับงวดถัดไป\n• "ผลหวย" — ผลงวดล่าสุด + ตรวจเลข bot\n• "groupid" — แสดง ID ของกลุ่มนี้';
+  'คำสั่ง LOTTO Bot\n• "เลขเด็ด" — เลขของ AI สำหรับงวดถัดไป\n• "ผลหวย" — ผลงวดล่าสุด + ตรวจเลข bot\n• "เช็ค 48" — ทดสอบเลขของคุณ (2, 3 หรือ 6 หลัก)\n• "groupid" — แสดง ID ของกลุ่มนี้';

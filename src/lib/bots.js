@@ -232,3 +232,8 @@ export function explain(number, history, game) {
   const gapText = gap > history.length ? 'ยังไม่เคยออกในช่วงนี้' : `ออกล่าสุด ${gap} งวดก่อน`;
   return `ออก ${all} ครั้งใน 10 ปี · ${hot} ครั้งใน ${WINDOW} งวดล่าสุด · ${gapText}`;
 }
+
+// เลขที่กำหนดอยู่เปอร์เซ็นไทล์ที่เท่าไรในคะแนนของ bot (1 = bot ชอบที่สุด, 0.5 = กลาง ๆ)
+export function rankOf(botId, H, game, number) {
+  return percentileOf(cachedScore(botId, H, game), number, game);
+}

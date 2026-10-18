@@ -2,7 +2,7 @@
 // ตั้ง Webhook URL ใน LINE Developers เป็น https://<เว็บ>/api/line/webhook
 import { verifySignature, reply } from '../lib/line.mjs';
 import { loadDraws } from '../lib/data.mjs';
-import { picksMessage, resultMessage, HELP_TEXT } from '../../src/lib/line-messages.js';
+import { picksMessage, resultMessage, checkText, HELP_TEXT } from '../../src/lib/line-messages.js';
 import { upcomingDraw, todayInThailand } from '../../src/lib/schedule.js';
 
 export const config = { path: '/api/line/webhook' };
@@ -24,6 +24,11 @@ export async function handleEvent(ev, siteUrl) {
   if (/^(ผลหวย|ผล|หวยออก|result)$/.test(cmd)) {
     const draws = await loadDraws(siteUrl);
     return [resultMessage(draws.at(-1), draws, siteUrl)];
+  }
+  const check = cmd.match(/^(?:เช็ค|เช็ก|ตรวจ|ทดสอบ|check)\s*(\d{1,6})$/);
+  if (check) {
+    const draws = await loadDraws(siteUrl);
+    return [{ type: 'text', text: checkText(draws, check[1]) }];
   }
   if (/^(help|ช่วยเหลือ|คำสั่ง)$/.test(cmd)) return [{ type: 'text', text: HELP_TEXT }];
   return null; // ข้อความอื่นในกลุ่มไม่ต้องตอบ

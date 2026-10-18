@@ -8,6 +8,7 @@ import { BOTS, pick, explain, adaptiveReport } from './lib/bots.js';
 import { mulberry32, randomSeed } from './lib/rng.js';
 import { theoreticalReturn, TICKET_PRICE } from './lib/prizes.js';
 import { nextDrawDate } from './lib/schedule.js';
+import { analyzeNumber } from './lib/checker.js';
 
 Chart.register(LineController, LineElement, PointElement, BarController, BarElement,
   LinearScale, CategoryScale, Filler, Tooltip, Legend);
@@ -218,6 +219,50 @@ function adaptiveNote(botId, draws, game) {
 }
 
 
+// ---------- ทดสอบเลข ----------
+function renderChecker(draws) {
+  const run = () => {
+    const raw = $('#check-input').value.trim();
+    const out = $('#check-out');
+    if (!raw) { out.innerHTML = ''; return; }
+    const r = analyzeNumber(draws, raw);
+    if (r.error) { out.innerHTML = `<p class="note">${esc(r.error)}</p>`; return; }
+    out.innerHTML = r.games.map((g) => checkGameHtml(r, g)).join('') + checkVerdict(r);
+  };
+  $('#check-form').addEventListener('submit', (e) => { e.preventDefault(); run(); });
+}
+
+function checkGameHtml(r, g) {
+  const h = g.history;
+  const odds = g.key === 'first'
+    ? `<div><span>โอกาสถูกรางวัลใดก็ได้</span><b>1 ใน ${g.oneIn.toLocaleString('th-TH')}</b><small>รางวัลที่ 1 คือ 1 ใน 1,000,000</small></div>`
+    : `<div><span>โอกาสออกงวดหน้า</span><b>${pct(g.probability, 1)}</b><small>1 ใน ${g.oneIn.toLocaleString('th-TH')} · เท่ากับทุกเลข</small></div>`;
+  const histTiles = h ? `
+    <div><span>ออกใน ${r.draws} งวด</span><b>${h.count} ครั้ง</b><small>ค่าคาดหวัง ${h.expected.toFixed(1)} ครั้ง</small></div>
+    <div><span>ออกล่าสุด</span><b>${h.lastSeen ? fmtDate(h.lastSeen, true) : 'ไม่เคยออก'}</b><small>${h.gap ? `${h.gap} งวดก่อน` : 'ในช่วง 10 ปี'}</small></div>` : '';
+  const b = g.buy;
+  const buyTile = `<div><span>ถ้าซื้อเลขนี้ทุกงวด (${b.draws} งวด)</span><b class="${b.profit >= 0 ? 'pos' : 'neg'}">${baht(b.profit)}</b><small>ต้นทุน ${baht(b.cost)} · ถูก ${b.wins} ครั้ง · ROI ${pct(b.roi)}</small></div>`;
+  const parts = g.key === 'first' && r.parts.length
+    ? `<div class="check-tiles">${r.parts.map((p) => `<div><span>${p.label} ${p.number}</span><b>${p.count} ครั้ง</b><small>คาดหวัง ${p.expected.toFixed(1)} · ${p.lastSeen ? `ล่าสุด ${fmtDate(p.lastSeen, true)}` : 'ไม่เคยออก'}</small></div>`).join('')}</div>` : '';
+  const bars = g.bots.map((x) => `
+    <div class="rank-bar"><span>${x.icon} ${x.name}</span><span class="track"><i style="width:${(x.percentile * 100).toFixed(0)}%;background:${BOT_COLOR[x.id]}"></i></span><em>${(x.percentile * 100).toFixed(0)}</em></div>`).join('');
+  return `<div class="check-game">
+    <div class="check-head"><span class="num">${r.number}</span><span class="tag">${g.label}</span></div>
+    <div class="check-tiles">${odds}${histTiles}${buyTile}</div>
+    ${parts}
+    <div><h3>คะแนนจาก Bot แต่ละตัว <small class="note">(0–100 · 100 = bot ชอบเลขนี้ที่สุด · เส้นกลาง = 50)</small></h3><div class="rank-bars">${bars}</div></div>
+  </div>`;
+}
+
+function checkVerdict(r) {
+  const g = r.games[0];
+  const avg = r.games.reduce((s, x) => s + x.avgBotPercentile, 0) / r.games.length;
+  const h = g.history;
+  const skew = h && h.pMoreThanChance < 0.05 ? `ออกบ่อยกว่าค่าเฉลี่ย (p = ${h.pMoreThanChance.toFixed(3)}) แต่เมื่อดูเลขทั้งหมด 100–1,000 ตัว ย่อมมีบางเลขออกบ่อยโดยบังเอิญเสมอ` : 'ความถี่ในอดีตอยู่ในช่วงปกติของการสุ่ม';
+  return `<div class="verdict"><b>สรุปเลข ${r.number}:</b> bot ให้คะแนนเฉลี่ย ${(avg * 100).toFixed(0)}/100 · ${skew} — ` +
+    `โอกาสออกจริงงวดหน้ายังคงเป็น <b>${g.key === 'first' ? '1 ใน 1,000,000 สำหรับรางวัลที่ 1' : `${pct(g.probability, 1)} เท่ากับทุกเลข`}</b> เพราะการออกรางวัลแต่ละงวดเป็นอิสระต่อกัน</div>`;
+}
+
 // ---------- backtest ----------
 const bt = { game: 'last2', mode: 'analyze', chart: null, cache: {} };
 let worker;
@@ -373,6 +418,7 @@ load().then(({ draws, updatedAt, backtest, validation }) => {
   renderHuay(draws);
   renderLottery(draws);
   renderBots(draws);
+  renderChecker(draws);
   runBot(draws);
   renderBacktest(draws, backtest);
   renderHistory(draws);
