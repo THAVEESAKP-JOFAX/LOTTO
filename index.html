@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LOTTO Analytics — วิเคราะห์หวยไทย 10 ปี</title>
+  <meta name="description" content="วิเคราะห์ผลสลากกินแบ่งรัฐบาลย้อนหลัง 10 ปี พร้อม Bot วิเคราะห์-สุ่มเลข และ Backtest อย่างตรงไปตรงมา" />
+  <meta name="theme-color" content="#0a0b0f" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23f6dc8f'/><stop offset='1' stop-color='%23a8781f'/></linearGradient></defs><circle cx='32' cy='32' r='30' fill='%230a0b0f' stroke='url(%23g)' stroke-width='4'/><text x='32' y='42' font-size='28' text-anchor='middle' fill='url(%23g)' font-family='serif' font-weight='700'>ล</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=Noto+Serif+Thai:wght@500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top"><span class="brand-mark">ล</span><span>LOTTO <em>Analytics</em></span></a>
+    <nav>
+      <a href="#overview">ภาพรวม</a>
+      <a href="#huay">หวย 2–3 ตัว</a>
+      <a href="#lottery">ล็อตเตอรี่ 6 หลัก</a>
+      <a href="#bot">Bot</a>
+      <a href="#backtest">Backtest</a>
+      <a href="#history">ผลย้อนหลัง</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-text">
+        <p class="eyebrow">สลากกินแบ่งรัฐบาล · ย้อนหลัง 10 ปี</p>
+        <h1>วิเคราะห์ด้วย<span class="gold">ข้อมูล</span><br />ไม่ใช่ความเชื่อ</h1>
+        <p class="lede" id="hero-lede">กำลังโหลดข้อมูล…</p>
+        <div class="hero-cta">
+          <a class="btn btn-gold" href="#bot">ให้ Bot เลือกเลข</a>
+          <a class="btn btn-ghost" href="#backtest">ดูผล Backtest</a>
+        </div>
+      </div>
+      <article class="latest card" id="latest" aria-live="polite"></article>
+    </section>
+
+    <section id="overview" class="section">
+      <div class="section-head">
+        <p class="eyebrow">01 · ภาพรวม</p>
+        <h2>สถิติ 10 ปีในหนึ่งหน้า</h2>
+      </div>
+      <div class="kpis" id="kpis"></div>
+    </section>
+
+    <section id="huay" class="section">
+      <div class="section-head">
+        <p class="eyebrow">02 · หวย</p>
+        <h2>เลขท้าย 2 ตัว · 3 ตัวหน้า · 3 ตัวท้าย</h2>
+        <div class="seg" id="huay-game" role="tablist"></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">
+            <h3 id="heat-title">แผนที่ความถี่</h3>
+            <div class="seg seg-sm" id="heat-metric">
+              <button data-v="freq" class="on">ความถี่</button>
+              <button data-v="gap">งวดที่ค้าง</button>
+            </div>
+          </div>
+          <div id="heatmap" class="heatmap"></div>
+          <p class="note" id="heat-note"></p>
+        </div>
+        <div class="card">
+          <h3>อันดับเลข</h3>
+          <div class="ranks" id="ranks"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="lottery" class="section">
+      <div class="section-head">
+        <p class="eyebrow">03 · ล็อตเตอรี่</p>
+        <h2>รางวัลที่ 1 — หลักต่อตำแหน่ง</h2>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h3>ความถี่ของหลัก 0–9 ในแต่ละตำแหน่ง</h3>
+          <div id="posmap" class="posmap"></div>
+          <p class="note" id="pos-note"></p>
+        </div>
+        <div class="card">
+          <h3>ผลรวมหลักของรางวัลที่ 1</h3>
+          <div class="chart-box"><canvas id="sum-chart"></canvas></div>
+          <p class="note" id="sum-note"></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="bot" class="section">
+      <div class="section-head">
+        <p class="eyebrow">04 · Bot</p>
+        <h2>Bot วิเคราะห์ & สุ่มเลข</h2>
+        <p class="sub">เลือกกลยุทธ์ ประเภทรางวัล และจำนวนเลข — โหมด “วิเคราะห์” เลือกเลขคะแนนสูงสุด, โหมด “สุ่ม” สุ่มถ่วงน้ำหนักตามคะแนน</p>
+      </div>
+      <div class="bots" id="bot-list"></div>
+      <div class="card bot-panel">
+        <div class="controls">
+          <label>ประเภท<select id="bot-game"></select></label>
+          <label>จำนวนเลข<input id="bot-k" type="number" min="1" max="20" value="5" /></label>
+          <div class="seg" id="bot-mode">
+            <button data-v="analyze" class="on">วิเคราะห์</button>
+            <button data-v="random">สุ่ม</button>
+          </div>
+          <label>Seed <small>(ว่าง = สุ่มใหม่)</small><input id="bot-seed" inputmode="numeric" placeholder="เช่น 2569" /></label>
+          <button class="btn btn-gold" id="bot-run">ให้ Bot เลือก</button>
+        </div>
+        <div id="bot-out" class="bot-out" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section id="backtest" class="section">
+      <div class="section-head">
+        <p class="eyebrow">05 · Backtest</p>
+        <h2>ถ้าเล่นตาม Bot มา 9 ปี จะเป็นอย่างไร</h2>
+        <p class="sub" id="bt-sub"></p>
+      </div>
+      <div class="card">
+        <div class="controls">
+          <div class="seg" id="bt-game"></div>
+          <div class="seg" id="bt-mode">
+            <button data-v="analyze" class="on">วิเคราะห์</button>
+            <button data-v="random">สุ่ม</button>
+          </div>
+          <label>เลขต่องวด<input id="bt-k" type="number" min="1" max="20" value="5" /></label>
+          <button class="btn btn-ghost" id="bt-run">คำนวณใหม่</button>
+          <span class="status" id="bt-status"></span>
+        </div>
+        <div class="chart-box tall"><canvas id="equity-chart"></canvas></div>
+        <p class="note">เส้น = กำไร/ขาดทุนสะสม (บาท) · แถบทอง = ช่วง 5–95% ของการสุ่มล้วน <span id="bt-runs"></span> รอบ</p>
+        <div class="table-wrap"><table class="table" id="bt-table"></table></div>
+        <div class="verdict" id="bt-verdict"></div>
+      </div>
+    </section>
+
+    <section id="history" class="section">
+      <div class="section-head">
+        <p class="eyebrow">06 · ผลย้อนหลัง</p>
+        <h2>ผลรางวัลทุกงวด</h2>
+        <label class="search">ค้นหาเลข<input id="hist-q" inputmode="numeric" placeholder="เช่น 48 หรือ 011781" /></label>
+      </div>
+      <div class="card">
+        <div class="table-wrap"><table class="table" id="hist-table"></table></div>
+        <button class="btn btn-ghost" id="hist-more">แสดงเพิ่ม</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="grid-2">
+        <div class="card" id="validation"></div>
+        <div class="card disclaimer">
+          <h3>อ่านก่อนเล่น</h3>
+          <p>การออกรางวัลสลากเป็นการสุ่ม ทุกเลขมีโอกาสเท่ากันทุกงวด สถิติในอดีตไม่ได้เพิ่มโอกาสถูกในงวดถัดไป
+             เงินรางวัลรวมทั้งหมดเท่ากับประมาณ <b>60%</b> ของยอดขาย แปลว่าระยะยาวผู้เล่นเสียเฉลี่ย 40%</p>
+          <p>เว็บนี้ทำเพื่อการศึกษาและความบันเทิง ไม่ใช่คำแนะนำการลงทุน · ผู้ซื้อสลากต้องมีอายุ 20 ปีขึ้นไป
+             · ซื้อสลากในราคาไม่เกิน 80 บาท · ไม่สนับสนุนหวยใต้ดิน</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>ข้อมูล: GLO API ผ่าน <a href="https://github.com/new4761/Thai_lottery_analysis" rel="noopener">new4761/Thai_lottery_analysis</a>
+      · ตรวจข้ามกับ <a href="https://github.com/vicha-w/thai-lotto-archive" rel="noopener">vicha-w/thai-lotto-archive</a></p>
+    <p id="footer-updated"></p>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
