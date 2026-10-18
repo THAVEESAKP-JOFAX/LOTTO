@@ -119,3 +119,16 @@ test('webhook: คำสั่ง "เช็ค 48" ตอบผลทดสอ�
   const r = calls.find((c) => c.url.endsWith('/reply'));
   assert.match(r.body.messages[0].text, /ทดสอบเลข 48/);
 });
+
+test('webhook: ถามตามวันที่ "งวด 01/11/26" และพิมพ์วันที่อย่างเดียว', async () => {
+  for (const text of ['งวด 01/11/26', '1 พ.ย. 69', `งวด ${draws.at(-1).date.split('-').reverse().join('/')}`]) {
+    calls = [];
+    await webhook(signed({ events: [{ type: 'message', replyToken: 'r5', source: { type: 'group', groupId: 'Cabc' }, message: { type: 'text', text } }] }));
+    const r = calls.find((c) => c.url.endsWith('/reply'));
+    assert.ok(r, text);
+    assert.ok(r.body.messages.some((m) => m.type === 'flex'), text);
+  }
+  calls = [];
+  await webhook(signed({ events: [{ type: 'message', replyToken: 'r6', source: { type: 'group', groupId: 'Cabc' }, message: { type: 'text', text: 'งวด อะไรก็ไม่รู้' } }] }));
+  assert.match(calls.find((c) => c.url.endsWith('/reply')).body.messages[0].text, /อ่านวันที่ไม่ออก/);
+});

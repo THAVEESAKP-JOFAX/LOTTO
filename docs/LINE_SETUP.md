@@ -54,13 +54,14 @@ LINE Developers → แท็บ **Messaging API**
 ```bash
 npm run bot:test                     # รัน bot แล้วแสดงค่าอย่างเดียว ไม่ส่งออก
 npm run bot:test -- --check 48       # ทดสอบเลขเพิ่ม
+npm run bot:test -- --date 01/11/26  # ถามตามวันที่งวด
 LINE_CHANNEL_ACCESS_TOKEN=xxx LINE_GROUP_IDS=Cxxx npm run bot:test -- --send   # ส่งจริง
 ```
 > ยังไม่รู้ Group ID? ใส่ User ID ของตัวเอง (LINE Developers → Basic settings → Your user ID) แทน
 > แล้วเพิ่ม bot เป็นเพื่อน — ข้อความจะส่งเข้าแชตส่วนตัวกับ bot
 
 ## ขั้น 7 — ทดสอบ
-- พิมพ์ในกลุ่ม: `คำสั่ง` · `เลขเด็ด` · `ผลหวย` · `เช็ค 48` · `groupid`
+- พิมพ์ในกลุ่ม: `คำสั่ง` · `เลขเด็ด` · `ผลหวย` · `เช็ค 48` · `งวด 01/11/26` · `groupid`
 - หน้าเว็บส่วน **แจ้งเตือน LINE** → ใส่ `ALERT_ADMIN_KEY` → กด **ทดสอบการเชื่อมต่อ**
 
 ---

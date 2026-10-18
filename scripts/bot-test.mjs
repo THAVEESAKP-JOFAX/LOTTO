@@ -1,6 +1,7 @@
 // ทดสอบรัน bot ทั้งรอบ แล้วแสดง (หรือส่ง) ค่าที่จะแจ้งเข้ากลุ่ม LINE
 //   npm run bot:test                    → รันและแสดงผลอย่างเดียว (ไม่ส่งอะไรออกไป)
 //   npm run bot:test -- --check 48      → ทดสอบเลขเพิ่ม
+//   npm run bot:test -- --date 01/11/26 → ถามตามวันที่งวด (เหมือนพิมพ์ "งวด 01/11/26" ใน LINE)
 //   npm run bot:test -- --send          → ส่งเลข bot + ผลงวดล่าสุดเข้ากลุ่ม LINE จริง
 //                                          (ต้องมี LINE_CHANNEL_ACCESS_TOKEN และ LINE_GROUP_IDS ใน env)
 import { readFile } from 'node:fs/promises';
@@ -10,10 +11,12 @@ import { botPicksFor, scorePicks, picksMessage, resultMessage, checkText, ALERT_
 import { GAMES } from '../src/lib/analysis.js';
 import { BOTS, adaptiveReport } from '../src/lib/bots.js';
 import { upcomingDraw, todayInThailand } from '../src/lib/schedule.js';
+import { parseDrawDate, drawQuery } from '../src/lib/date-query.js';
 
 const args = process.argv.slice(2);
 const send = args.includes('--send');
 const checkArg = args.includes('--check') ? args[args.indexOf('--check') + 1] : null;
+const dateArg = args.includes('--date') ? args[args.indexOf('--date') + 1] : null;
 const siteUrl = process.env.URL || 'https://lottothaipro.netlify.app';
 
 const local = JSON.parse(await readFile(new URL('../public/data/draws.json', import.meta.url), 'utf8')).draws;
@@ -52,6 +55,17 @@ console.log(`   รวมเงินรางวัล ฿${money.toLocaleStrin
 
 // 3) ทดสอบเลข (ถ้าระบุ)
 if (checkArg) console.log(`\n③ ${checkText(draws, checkArg).replace(/\n/g, '\n   ')}`);
+
+// ถามตามวันที่ (ถ้าระบุ)
+if (dateArg) {
+  const date = parseDrawDate(dateArg, todayInThailand());
+  console.log(`\n🗓  ถาม "งวด ${dateArg}" → ${date ?? 'อ่านวันที่ไม่ออก'}`);
+  if (date) {
+    for (const m of drawQuery(draws, date, { today: todayInThailand(), siteUrl })) {
+      console.log('   ┌ ' + (m.type === 'text' ? m.text : m.altText).replace(/\n/g, '\n   │ ') + '\n   └');
+    }
+  }
+}
 
 // 4) ข้อความที่จะส่งเข้า LINE
 const messages = [picksMessage(next, draws, siteUrl), resultMessage(latest, draws, siteUrl)];
