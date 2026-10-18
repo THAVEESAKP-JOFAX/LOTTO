@@ -53,10 +53,7 @@ h3 { font-size: 18px; margin-bottom: 14px; color: var(--text); }
   border-bottom: 1px solid var(--line);
 }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--text); font: 700 18px var(--serif); letter-spacing: 0.04em; }
-.brand-mark {
-  width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%;
-  border: 1.5px solid var(--gold); color: var(--gold); font-size: 17px;
-}
+.brand-mark { width: 34px; height: 34px; display: block; }
 .topbar nav { display: flex; gap: 22px; overflow-x: auto; scrollbar-width: none; }
 .topbar nav a { color: var(--muted); font-size: 14px; white-space: nowrap; }
 .topbar nav a:hover { color: var(--gold-hi); }
