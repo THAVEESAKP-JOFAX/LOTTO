@@ -2,9 +2,10 @@
 // ตั้ง Webhook URL ใน LINE Developers เป็น https://<เว็บ>/api/line/webhook
 import { verifySignature, reply, markAsRead } from '../lib/line.mjs';
 import { loadDraws } from '../lib/data.mjs';
-import { picksMessage, resultMessage, checkText, twoDigitMessage, threeDigitMessage, floatMessage, ticketCheckMessage, drawQuickReply, TICKET_HELP, HELP_TEXT } from '../../src/lib/line-messages.js';
+import { picksMessage, resultMessage, checkText, twoDigitMessage, threeDigitMessage, floatMessage, ticketCheckMessage, drawQuickReply, luckyDayMessage, TICKET_HELP, HELP_TEXT } from '../../src/lib/line-messages.js';
 import { getSettings } from '../lib/settings.mjs';
 import { parseTickets } from '../../src/lib/ticket-check.js';
+import { parseDay, dayOf } from '../../src/lib/lucky-day.js';
 import { upcomingDraw, todayInThailand } from '../../src/lib/schedule.js';
 import { parseDrawDate, drawQuery } from '../../src/lib/date-query.js';
 
@@ -36,6 +37,13 @@ export async function handleEvent(ev, siteUrl, settings = null) {
   if (nextCmd) {
     const draws = await loadDraws(siteUrl);
     return nextCmd[1](upcomingDraw(draws.at(-1).date, todayInThailand()), draws, settings, siteUrl);
+  }
+  // เลขมงคลตามวันเกิด: "เลขประจำวัน" (วันนี้) หรือ "เลขประจำวัน จันทร์"
+  const luckyCmd = compact.match(/^(?:เลขประจำวัน|เลขมงคล|เลขวันเกิด|เลขประจำวันเกิด)(.*)$/);
+  if (luckyCmd) {
+    const day = parseDay(luckyCmd[1]);
+    if (luckyCmd[1] && !day) return [{ type: 'text', text: 'ไม่รู้จักวันนี้ ลองพิมพ์ เช่น "เลขประจำวัน จันทร์" หรือ "เลขประจำวัน พุธกลางคืน"' }];
+    return [luckyDayMessage(day ?? dayOf(todayInThailand()), !day)];
   }
   // ตรวจรางวัล: "ตรวจรางวัล 011781 123456 [งวด 16/10/69]"
   const ticketCmd = cmd.match(/^(?:ตรวจรางวัล|ตรวจหวย|ตรวจสลาก|ตรวจลอตเตอรี่|ตรวจล็อตเตอรี่)\s*(.*)$/s);

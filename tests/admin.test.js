@@ -102,3 +102,22 @@ test('ปิดการตอบคำสั่งจากหน้า Admin �
   assert.equal(await handleEvent(ev('เลขเด็ด'), 'https://x', off), null);
   assert.match((await handleEvent(ev('groupid'), 'https://x', off))[0].text, /Cabc/);
 });
+
+test('เลขมงคลตามวันเกิด (ทักษา): กาลกิณีตรงตามตำรา และคำสั่ง LINE', async () => {
+  const { DAYS, luckyNumbers, parseDay } = await import('../src/lib/lucky-day.js');
+  const kala = Object.fromEntries(DAYS.map((d) => [d.key, luckyNumbers(d).kalakini]));
+  assert.deepEqual(kala, { sun: 6, mon: 1, tue: 2, wed: 3, thu: 7, fri: 8, sat: 4, rahu: 5 });
+  assert.equal(parseDay('วันพุธกลางคืน').key, 'rahu');
+  assert.equal(parseDay('พุธ').key, 'wed');
+  const l = luckyNumbers(DAYS[0]);
+  assert.equal(l.two.length, 6);
+  assert.equal(l.three.length, 6);
+  const { handleEvent } = await import('../netlify/functions/line-webhook.mjs');
+  const ev = (text) => ({ type: 'message', source: { type: 'group', groupId: 'C' }, message: { type: 'text', text } });
+  const on = normalizeSettings({});
+  const r = await handleEvent(ev('เลขประจำวัน จันทร์'), 'https://x', on);
+  assert.match(r[0].altText, /วันจันทร์/);
+  assert.equal(r[0].quickReply.items.length, 7);
+  assert.ok(r[0].quickReply.items.every((i) => !i.action.label.includes('กลางคืนกลางคืน')));
+  assert.match((await handleEvent(ev('เลขประจำวัน'), 'https://x', on))[0].altText, /เลขมงคลคนเกิดวัน/);
+});

@@ -6,6 +6,7 @@ import { checkTicket, payout, PRIZES } from './prizes.js';
 import { analyzeNumber } from './checker.js';
 import { floatingDigits } from './floating.js';
 import { checkTickets } from './ticket-check.js';
+import { DAYS, luckyNumbers } from './lucky-day.js';
 import { DEFAULT_SETTINGS } from './settings.js';
 
 const C = {
@@ -138,6 +139,31 @@ export function ticketCheckMessage(draws, tickets, date = null) {
   return { ...flex(alt, bubble(`งวด ${thDate(r.draw.date)}`, body, 'ตรวจรางวัล')), quickReply: drawQuickReply(draws, tickets, r.draw.date) };
 }
 
+// คำสั่ง "เลขประจำวัน [วันเกิด]" — เลขมงคลตามหลักทักษา + ปุ่มเลือกวันเกิดอื่น
+export function luckyDayMessage(day, isToday = false) {
+  const l = luckyNumbers(day);
+  const body = [
+    row('เลขประจำวัน', String(l.main), { color: C.hi, size: 'xl' }),
+    row('เลขศรี (โชคลาภ)', String(l.sri), { size: 'lg' }),
+    row('เลขเดช (อำนาจ)', String(l.dech), { size: 'lg' }),
+    { type: 'separator', margin: 'md', color: C.line },
+    row('เลข 2 ตัว', l.two.join('  '), { color: C.hi }),
+    row('เลข 3 ตัว', l.three.slice(0, 3).join('  ')),
+    row('', l.three.slice(3).join('  ')),
+    row('ควรเลี่ยง (กาลกิณี)', String(l.kalakini), { color: C.muted, weight: 'regular' }),
+    text('ตามหลักทักษา · กดปุ่มด้านล่างเพื่อดูวันเกิดอื่น', { size: 'xxs', color: C.muted, margin: 'md' }),
+  ];
+  const alt = `เลขมงคลคนเกิดวัน${day.name}\nเลขประจำวัน ${l.main} · ศรี ${l.sri} · เดช ${l.dech}\n2 ตัว: ${l.two.join(' ')}\n3 ตัว: ${l.three.join(' ')}\nกาลกิณี: ${l.kalakini}`;
+  return {
+    ...flex(alt, bubble(`${isToday ? 'วันนี้ · ' : ''}คนเกิดวัน${day.name}`, body, 'เลขมงคลประจำวันเกิด')),
+    quickReply: {
+      items: DAYS.filter((d) => d.key !== day.key).map((d) => ({
+        type: 'action', action: { type: 'message', label: (d.key === 'rahu' ? 'พุธกลางคืน' : d.name.replace(/ \(.*\)/, '')).slice(0, 20), text: `เลขประจำวัน ${d.aliases[0]}` },
+      })),
+    },
+  };
+}
+
 export const TICKET_HELP = 'พิมพ์ "ตรวจรางวัล" ตามด้วยเลข 6 หลัก (ครั้งละไม่เกิน 10 ใบ)\nเช่น ตรวจรางวัล 011781 123456\nเลือกงวด: ตรวจรางวัล 011781 งวด 16/10/69';
 
 // สรุปว่าเลขของ bot งวดนั้นถูกอะไรบ้าง
@@ -197,4 +223,4 @@ export function checkText(draws, raw) {
 
 export const HELP_TEXT =
   'คำสั่ง LOTTO Bot\n• "เลขเด็ด" — เลขของ bot สำหรับงวดถัดไป\n• "เลข2ตัว" — เลขท้าย 2 ตัว\n• "เลข3ตัว" — เลขท้าย 3 ตัว + เลขหน้า 3 ตัว\n' +
-  '• "เลขลอยบน" / "เลขลอยล่าง" — เลขวิ่งหลักเดียว\n• "ผลหวย" — ผลงวดล่าสุด\n• "ตรวจรางวัล 011781" — ตรวจสลาก (เลือกงวดได้)\n• "เช็ค 48" — ทดสอบเลขของคุณ\n• "งวด 01/11/26" — เลขหรือผลของงวดนั้น\n• "groupid" — แสดง ID ของกลุ่มนี้';
+  '• "เลขลอยบน" / "เลขลอยล่าง" — เลขวิ่งหลักเดียว\n• "เลขประจำวัน" หรือ "เลขประจำวัน จันทร์" — เลขมงคลตามวันเกิด\n• "ผลหวย" — ผลงวดล่าสุด\n• "ตรวจรางวัล 011781" — ตรวจสลาก (เลือกงวดได้)\n• "เช็ค 48" — ทดสอบเลขของคุณ\n• "งวด 01/11/26" — เลขหรือผลของงวดนั้น\n• "groupid" — แสดง ID ของกลุ่มนี้';
