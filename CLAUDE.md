@@ -15,4 +15,7 @@
 ## โครงสร้าง
 - `src/lib/` — logic ที่ใช้ร่วมกันทั้ง Node และเบราว์เซอร์ (prizes, rng, analysis, bots, backtest)
 - `scripts/` — fetch-data, backtest-report, deploy
+- `netlify/functions/` — LINE: `line-webhook` (คำสั่งในกลุ่ม), `line-send` (ส่งจากเว็บ, ต้องมี ALERT_ADMIN_KEY),
+  `line-alert-picks` / `line-alert-result` (scheduled) · `netlify/lib/` — LINE client + โหลดผลงวดใหม่
+- Env บน Netlify: `LINE_CHANNEL_ACCESS_TOKEN`, `LINE_CHANNEL_SECRET`, `LINE_GROUP_IDS`, `ALERT_ADMIN_KEY` — ห้าม commit ค่าเหล่านี้
 - Backtest ต้องเป็น walk-forward เสมอ (งวด t ใช้ข้อมูลก่อน t เท่านั้น) — มี test ครอบคลุม

@@ -7,6 +7,7 @@ import { BOTS, pick } from '../src/lib/bots.js';
 import { mulberry32, weightedSample } from '../src/lib/rng.js';
 import { runBacktest } from '../src/lib/backtest.js';
 import { parseCsv, fromPrimaryRow, fromArchiveText, checkDraw, mergeSources } from '../scripts/fetch-data.mjs';
+import { adaptiveReport } from '../src/lib/bots.js';
 
 const draw = (date, first, last2, extra = {}) => ({
   date, first, last2, near: [], second: [], third: [], fourth: [], fifth: [],
@@ -114,4 +115,16 @@ test('backtest ไม่มองอนาคต และทำซ้ำได�
   const mutated = small.map((d, i) => (i >= 30 ? { ...d, last2: '00' } : d));
   const c = runBacktest(mutated, 'hot', 'last2', { warmup: 10 });
   for (let i = 0; i <= 20; i++) assert.deepEqual(a.rows[i].picks, c.rows[i].picks);
+});
+
+test('AI ปรับตัว: ใช้เฉพาะข้อมูลก่อนงวด (เปลี่ยนอนาคตแล้วการเลือกเดิมไม่เปลี่ยน)', () => {
+  const H = data.slice(0, 120);
+  const a = adaptiveReport(H, GAMES.last2);
+  assert.equal(a.length, 6);
+  for (const r of a) assert.ok(r.quality > 0 && r.quality < 1);
+  const mutated = [...H, ...data.slice(120, 130).map((d) => ({ ...d, last2: '00' }))];
+  assert.deepEqual(adaptiveReport(mutated.slice(0, 120), GAMES.last2), a);
+  const p1 = pick('adaptive', H, GAMES.last2, 5, 'analyze', mulberry32(1));
+  const p2 = pick('adaptive', mutated.slice(0, 120), GAMES.last2, 5, 'analyze', mulberry32(1));
+  assert.deepEqual(p1, p2);
 });

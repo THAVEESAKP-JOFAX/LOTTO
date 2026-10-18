@@ -218,6 +218,10 @@ mark { background: rgba(227, 189, 98, .25); color: var(--gold-hi); border-radius
 .verdict b { color: var(--gold-hi); }
 .status { color: var(--faint); font-size: 13px; }
 #hist-more { margin-top: 16px; }
+.line-actions { margin-top: 16px; }
+#line-key { width: min(320px, 100%); }
+.steps { margin: 0; padding-left: 20px; color: var(--muted); font-size: 14.5px; display: grid; gap: 8px; }
+code { font: 500 12.5px var(--mono); background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; color: var(--gold-hi); word-break: break-all; }
 
 .disclaimer p { color: var(--muted); font-size: 14.5px; }
 #validation ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14.5px; }

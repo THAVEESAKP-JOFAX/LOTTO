@@ -4,9 +4,10 @@ import {
   LinearScale, CategoryScale, Filler, Tooltip, Legend,
 } from 'chart.js';
 import { GAMES, frequency, gaps, positional, summary, pad } from './lib/analysis.js';
-import { BOTS, pick, explain } from './lib/bots.js';
+import { BOTS, pick, explain, adaptiveReport } from './lib/bots.js';
 import { mulberry32, randomSeed } from './lib/rng.js';
 import { theoreticalReturn, TICKET_PRICE } from './lib/prizes.js';
+import { nextDrawDate } from './lib/schedule.js';
 
 Chart.register(LineController, LineElement, PointElement, BarController, BarElement,
   LinearScale, CategoryScale, Filler, Tooltip, Legend);
@@ -14,15 +15,15 @@ Chart.register(LineController, LineElement, PointElement, BarController, BarElem
 // สีของแต่ละ bot (ผ่านการตรวจ CVD บนพื้นหลังมืดแล้ว) — สีผูกกับ bot ไม่ใช่อันดับ
 const BOT_COLOR = {
   random: '#8a8578', hot: '#d95926', cold: '#3987e5', overdue: '#c98500',
-  positional: '#199e70', markov: '#9085e9', ensemble: '#d55181',
+  positional: '#199e70', markov: '#9085e9', ensemble: '#d55181', bayes: '#008300', adaptive: '#e66767',
 };
 const INK = { text: '#ece6d6', muted: '#9a9384', grid: 'rgba(232,200,120,0.08)' };
 Chart.defaults.font.family = "'IBM Plex Sans Thai', system-ui, sans-serif";
 Chart.defaults.color = INK.muted;
 
 const $ = (s) => document.querySelector(s);
-const thDate = new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
-const thShort = new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: '2-digit' });
+const thDate = new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Bangkok' });
+const thShort = new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: '2-digit', timeZone: 'Asia/Bangkok' });
 const fmtDate = (iso, short) => (short ? thShort : thDate).format(new Date(iso + 'T00:00:00+07:00'));
 const baht = (n) => `${n < 0 ? '−' : ''}฿${Math.abs(Math.round(n)).toLocaleString('th-TH')}`;
 const pct = (x, d = 1) => `${(x * 100).toFixed(d)}%`;
@@ -53,7 +54,7 @@ function renderHero(draws, val) {
   const last = draws.at(-1);
   $('#hero-lede').textContent =
     `ข้อมูล ${draws.length} งวด ตั้งแต่ ${fmtDate(draws[0].date)} ถึง ${fmtDate(last.date)} ` +
-    `ตรวจสอบข้าม 2 แหล่ง พร้อม Bot 7 กลยุทธ์ที่ผ่านการ Backtest แบบไม่มองอนาคต`;
+    `ตรวจสอบข้าม 2 แหล่ง พร้อม Bot ${BOTS.length} กลยุทธ์ที่ผ่านการ Backtest แบบไม่มองอนาคต`;
   $('#latest').innerHTML = `
     <div class="label">ผลสลากงวดล่าสุด</div>
     <div class="date">${fmtDate(last.date)}</div>
@@ -172,7 +173,7 @@ function renderLottery(draws) {
 }
 
 // ---------- bot ----------
-const botState = { id: 'ensemble' };
+const botState = { id: 'adaptive' };
 
 function renderBots(draws) {
   $('#bot-list').innerHTML = BOTS.map((b) => `
@@ -201,16 +202,21 @@ function runBot(draws) {
   const next = nextDrawDate(draws.at(-1).date);
   $('#bot-out').innerHTML =
     `<div class="bot-meta">${bot.icon} ${bot.name} · ${game.label} · โหมด${mode === 'analyze' ? 'วิเคราะห์' : 'สุ่ม'} · seed ${seed} · สำหรับงวด ${fmtDate(next)}</div>` +
+    adaptiveNote(bot.id, draws, game) +
     picks.map((n, i) => `<div class="pick" style="animation-delay:${i * 60}ms"><span class="num">${n}</span><span class="why">${esc(explain(n, draws, game))}</span></div>`).join('') +
     `<div class="bot-meta">โอกาสถูกต่อเลขยังคงเท่าเดิมทุกกลยุทธ์ — ดูหลักฐานในส่วน Backtest ด้านล่าง</div>`;
 }
 
-function nextDrawDate(iso) {
-  const d = new Date(iso + 'T00:00:00Z');
-  const n = d.getUTCDate() < 16 ? new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 16))
-    : new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1));
-  return n.toISOString().slice(0, 10);
+function adaptiveNote(botId, draws, game) {
+  if (botId !== 'adaptive') return '';
+  const rep = adaptiveReport(draws, game);
+  if (!rep.length) return '';
+  const name = (id) => BOTS.find((b) => b.id === id);
+  return `<div class="bot-meta">🧠 งวดนี้เลือกใช้ <b>${name(rep[0].id).icon} ${name(rep[0].id).name}</b> — ` +
+    rep.map((r) => `${name(r.id).name} ${(r.quality * 100).toFixed(1)}`).join(' · ') +
+    ` (คะแนนเปอร์เซ็นไทล์เฉลี่ยของเลขที่ออกจริงใน 48 งวดล่าสุด, สุ่ม = 50.0)</div>`;
 }
+
 
 // ---------- backtest ----------
 const bt = { game: 'last2', mode: 'analyze', chart: null, cache: {} };
@@ -252,7 +258,7 @@ function show(res, k) {
     ...bots.map((b) => ({
       label: BOTS.find((x) => x.id === b.botId).name,
       data: b.equity, borderColor: BOT_COLOR[b.botId], backgroundColor: BOT_COLOR[b.botId],
-      borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, tension: 0, borderDash: b.botId === 'random' ? [5, 4] : [],
+      borderWidth: b.botId === 'adaptive' ? 3.5 : 2, pointRadius: 0, pointHoverRadius: 5, tension: 0, borderDash: b.botId === 'random' ? [5, 4] : [],
     })),
   ];
   const opts = {
@@ -328,6 +334,36 @@ function renderHistory(draws) {
   draw();
 }
 
+// ---------- LINE alert ----------
+function renderLine() {
+  const KEY = 'lotto-line-admin-key';
+  const input = $('#line-key');
+  try { input.value = localStorage.getItem(KEY) || ''; } catch {}
+  $('#line-webhook-url').textContent = `${location.origin}/api/line/webhook`;
+  document.querySelector('.line-actions').addEventListener('click', async (e) => {
+    const b = e.target.closest('button[data-type]');
+    if (!b) return;
+    const status = $('#line-status');
+    if (!input.value) { status.textContent = 'กรุณาใส่รหัสผู้ดูแลก่อน'; return; }
+    try { localStorage.setItem(KEY, input.value); } catch {}
+    b.disabled = true;
+    status.textContent = 'กำลังส่ง…';
+    try {
+      const res = await fetch('/api/line/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': input.value },
+        body: JSON.stringify({ type: b.dataset.type }),
+      });
+      const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+      status.textContent = res.ok ? `✅ ส่งเข้า ${data.groups} กลุ่มแล้ว` : `✗ ${data.error}`;
+    } catch (err) {
+      status.textContent = `✗ ${err.message}`;
+    } finally {
+      b.disabled = false;
+    }
+  });
+}
+
 // ---------- boot ----------
 load().then(({ draws, updatedAt, backtest, validation }) => {
   renderHero(draws, validation);
@@ -340,6 +376,7 @@ load().then(({ draws, updatedAt, backtest, validation }) => {
   runBot(draws);
   renderBacktest(draws, backtest);
   renderHistory(draws);
+  renderLine();
   $('#footer-updated').textContent = `อัปเดตข้อมูล ${thDate.format(new Date(updatedAt))} · Backtest ${thDate.format(new Date(backtest.generatedAt))}`;
 }).catch((err) => {
   $('#hero-lede').textContent = `โหลดข้อมูลไม่สำเร็จ: ${err.message}`;

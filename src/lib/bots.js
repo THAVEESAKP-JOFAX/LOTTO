@@ -5,6 +5,9 @@ import { frequency, gaps, positional, positionalGaps, transitions, pad } from '.
 import { weightedSample } from './rng.js';
 
 const WINDOW = 60; // ประมาณ 2.5 ปีล่าสุด
+const HALF_LIFE = 24; // Bayes: น้ำหนักงวดลดลงครึ่งหนึ่งทุก 24 งวด (≈ 1 ปี)
+const ADAPT_LOOKBACK = 48; // AI ปรับตัว: วัดผลแต่ละกลยุทธ์ย้อนหลัง 48 งวด (≈ 2 ปี)
+const ADAPT_CANDIDATES = ['hot', 'cold', 'overdue', 'positional', 'markov', 'bayes'];
 
 const fullSpace = (game) => game.space <= 1000;
 const digitsOf = (n, game) => [...pad(n, game.digits)].map(Number);
@@ -103,9 +106,70 @@ export const BOTS = [
       return { pos };
     },
   },
+  {
+    id: 'bayes', name: 'เบย์ถ่วงเวลา', icon: '📐',
+    desc: `ความน่าจะเป็นแบบ Bayes (Dirichlet) ให้น้ำหนักงวดล่าสุดมากกว่า ลดลงครึ่งทุก ${HALF_LIFE} งวด`,
+    score: (H, game) => {
+      const w = (i) => 0.5 ** ((H.length - 1 - i) / HALF_LIFE);
+      if (fullSpace(game)) {
+        const full = new Float64Array(game.space).fill(1); // prior α = 1 ทุกเลข
+        H.forEach((d, i) => { for (const v of game.values(d)) full[Number(v)] += w(i); });
+        return { full };
+      }
+      const pos = Array.from({ length: game.digits }, () => new Array(10).fill(1));
+      H.forEach((d, i) => { for (const v of game.values(d)) for (let p = 0; p < game.digits; p++) pos[p][v.charCodeAt(p) - 48] += w(i); });
+      return { pos };
+    },
+  },
+  {
+    id: 'adaptive', name: 'AI ปรับตัว', icon: '🧠',
+    desc: `ทุกงวดทดสอบ ${ADAPT_CANDIDATES.length} กลยุทธ์ย้อนหลัง ${ADAPT_LOOKBACK} งวด แล้วใช้ตัวที่จัดอันดับเลขที่ออกจริงได้ดีที่สุด`,
+    score: (H, game) => {
+      const best = adaptiveReport(H, game)[0];
+      return cachedScore(best ? best.id : 'ensemble', H, game);
+    },
+  },
 ];
 
 export const getBot = (id) => BOTS.find((b) => b.id === id);
+
+// --- AI ปรับตัว ---
+// เก็บคะแนนของประวัติที่เคยคำนวณแล้ว (backtest เรียกซ้ำกับ prefix เดิมจำนวนมาก)
+const scoreCache = new Map();
+function cachedScore(id, H, game) {
+  const key = `${id}|${game.key}|${H.length}|${H[0]?.date}|${H.at(-1)?.date}`;
+  let s = scoreCache.get(key);
+  if (!s) {
+    if (scoreCache.size > 4000) scoreCache.clear();
+    s = getBot(id).score(H, game);
+    scoreCache.set(key, s);
+  }
+  return s;
+}
+
+// เลขที่ออกจริงอยู่อันดับเปอร์เซ็นไทล์ที่เท่าไรในคะแนนของกลยุทธ์ (0.5 = เท่ากับการสุ่ม)
+function percentileOf(s, value, game) {
+  const rank = (arr, x) => {
+    let below = 0, ties = 0;
+    for (const y of arr) { if (y < x) below++; else if (y === x) ties++; }
+    return (below + 0.5 * ties) / arr.length;
+  };
+  if (s.full) return rank(s.full, s.full[Number(value)]);
+  return s.pos.reduce((sum, w, p) => sum + rank(w, w[value.charCodeAt(p) - 48]), 0) / s.pos.length;
+}
+
+// จัดอันดับกลยุทธ์จากผลย้อนหลัง ADAPT_LOOKBACK งวด โดยใช้เฉพาะข้อมูลใน H (ไม่มองอนาคต)
+export function adaptiveReport(H, game) {
+  if (H.length < ADAPT_LOOKBACK + 12) return [];
+  return ADAPT_CANDIDATES.map((id) => {
+    let sum = 0, n = 0;
+    for (let j = H.length - ADAPT_LOOKBACK; j < H.length; j++) {
+      const s = cachedScore(id, H.slice(0, j), game);
+      for (const v of game.values(H[j])) { sum += percentileOf(s, v, game); n++; }
+    }
+    return { id, quality: sum / n };
+  }).sort((a, b) => b.quality - a.quality);
+}
 
 // เลือกเลข K ตัวจากคะแนนเต็มพื้นที่
 function pickFull(scores, game, k, mode, rand) {

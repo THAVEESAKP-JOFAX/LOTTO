@@ -20,6 +20,7 @@
       <a href="#lottery">ล็อตเตอรี่ 6 หลัก</a>
       <a href="#bot">Bot</a>
       <a href="#backtest">Backtest</a>
+      <a href="#line">แจ้งเตือน LINE</a>
       <a href="#history">ผลย้อนหลัง</a>
     </nav>
   </header>
@@ -136,9 +137,41 @@
       </div>
     </section>
 
+    <section id="line" class="section">
+      <div class="section-head">
+        <p class="eyebrow">06 · แจ้งเตือน</p>
+        <h2>ส่ง Alert เข้ากลุ่ม LINE</h2>
+        <p class="sub">อัตโนมัติ: เช้าวันออกรางวัล 09:00 น. ส่งเลขของ 🧠 AI ปรับตัว และหลังผลออก (15:30–18:30 น.) ส่งผลรางวัลพร้อมตรวจเลขของ bot · พิมพ์ “เลขเด็ด” หรือ “ผลหวย” ในกลุ่มได้ตลอด</p>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <h3>ส่งด้วยตัวเอง</h3>
+          <div class="controls">
+            <label>รหัสผู้ดูแล (ALERT_ADMIN_KEY)<input id="line-key" type="password" autocomplete="off" placeholder="เฉพาะผู้ดูแลกลุ่ม" /></label>
+          </div>
+          <div class="controls line-actions">
+            <button class="btn btn-gold" data-type="picks">ส่งเลข Bot งวดถัดไป</button>
+            <button class="btn btn-ghost" data-type="result">ส่งผลงวดล่าสุด</button>
+            <button class="btn btn-ghost" data-type="test">ทดสอบการเชื่อมต่อ</button>
+          </div>
+          <p class="status" id="line-status" aria-live="polite"></p>
+        </div>
+        <div class="card">
+          <h3>ตั้งค่าครั้งแรก</h3>
+          <ol class="steps">
+            <li>สร้าง LINE Official Account และเปิด Messaging API ที่ <a href="https://developers.line.biz/console/" rel="noopener">LINE Developers</a></li>
+            <li>ตั้ง Webhook URL เป็น <code id="line-webhook-url">/api/line/webhook</code> แล้วเปิด “Allow bot to join group chats”</li>
+            <li>ใส่ค่าใน Netlify → Environment variables: <code>LINE_CHANNEL_ACCESS_TOKEN</code>, <code>LINE_CHANNEL_SECRET</code>, <code>ALERT_ADMIN_KEY</code></li>
+            <li>เชิญ bot เข้ากลุ่ม — bot จะตอบ Group ID กลับมา นำไปใส่ใน <code>LINE_GROUP_IDS</code> (หลายกลุ่มคั่นด้วย ,)</li>
+          </ol>
+          <p class="note">LINE Notify ปิดบริการแล้ว จึงใช้ Messaging API · แพ็กเกจฟรีมีโควตาข้อความต่อเดือน และการส่งเข้ากลุ่มนับตามจำนวนสมาชิกในกลุ่ม</p>
+        </div>
+      </div>
+    </section>
+
     <section id="history" class="section">
       <div class="section-head">
-        <p class="eyebrow">06 · ผลย้อนหลัง</p>
+        <p class="eyebrow">07 · ผลย้อนหลัง</p>
         <h2>ผลรางวัลทุกงวด</h2>
         <label class="search">ค้นหาเลข<input id="hist-q" inputmode="numeric" placeholder="เช่น 48 หรือ 011781" /></label>
       </div>

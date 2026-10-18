@@ -6,12 +6,15 @@ import { writeFile, mkdir, readFile, readdir, rm, mkdtemp } from 'node:fs/promis
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { parseCsv, fromPrimaryRow, fromArchiveText, checkDraw } from '../src/lib/parse.js';
 
 const YEARS = Number(process.env.YEARS || 10);
 const PRIMARY_URL =
   'https://raw.githubusercontent.com/new4761/Thai_lottery_analysis/main/lottery_results.csv';
 const SECONDARY_REPO = 'https://github.com/vicha-w/thai-lotto-archive.git';
 const OUT_DIR = new URL('../public/data/', import.meta.url);
+
+export { parseCsv, fromPrimaryRow, fromArchiveText, checkDraw };
 
 async function fetchText(url, tries = 4) {
   for (let i = 0; ; i++) {
@@ -25,77 +28,6 @@ async function fetchText(url, tries = 4) {
       await new Promise((r) => setTimeout(r, 2000 * 2 ** i));
     }
   }
-}
-
-// CSV parser ที่รองรับค่าใน "..." ซึ่งมีจุลภาค
-export function parseCsv(text) {
-  const rows = [];
-  let row = [], field = '', quoted = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (quoted) {
-      if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
-      else if (c === '"') quoted = false;
-      else field += c;
-    } else if (c === '"') quoted = true;
-    else if (c === ',') { row.push(field); field = ''; }
-    else if (c === '\n' || c === '\r') {
-      if (c === '\r' && text[i + 1] === '\n') i++;
-      row.push(field); rows.push(row); row = []; field = '';
-    } else field += c;
-  }
-  if (field || row.length) { row.push(field); rows.push(row); }
-  const [header, ...body] = rows.filter((r) => r.length > 1);
-  return body.map((r) => Object.fromEntries(header.map((h, i) => [h, r[i] ?? ''])));
-}
-
-const list = (s) => (s ? s.split(/[,\s]+/).filter(Boolean).sort() : []);
-
-export function fromPrimaryRow(r) {
-  return {
-    date: r.date,
-    first: r.first,
-    near: list(r.near1),
-    second: list(r.second),
-    third: list(r.third),
-    fourth: list(r.fourth),
-    fifth: list(r.fifth),
-    front3: list(r.last3f),
-    last3: list(r.last3b),
-    last2: r.last2.padStart(2, '0'),
-  };
-}
-
-export function fromArchiveText(date, text) {
-  const map = {};
-  for (const line of text.split('\n').slice(1)) {
-    const [key, ...nums] = line.trim().split(/\s+/);
-    if (key) map[key] = nums.sort();
-  }
-  return {
-    date,
-    first: map.FIRST?.[0] ?? '',
-    near: map.NEAR_FIRST ?? [],
-    second: map.SECOND ?? [],
-    third: map.THIRD ?? [],
-    fourth: map.FOURTH ?? [],
-    fifth: map.FIFTH ?? [],
-    front3: map.THREE_FIRST ?? [],
-    last3: map.THREE_LAST ?? [],
-    last2: map.TWO?.[0] ?? '',
-  };
-}
-
-const EXPECTED = { near: 2, second: 5, third: 10, fourth: 50, fifth: 100, front3: 2, last3: 2 };
-
-export function checkDraw(d) {
-  const problems = [];
-  if (!/^\d{6}$/.test(d.first)) problems.push('first');
-  if (!/^\d{2}$/.test(d.last2)) problems.push('last2');
-  for (const [k, n] of Object.entries(EXPECTED)) {
-    if (d[k].length !== n) problems.push(`${k}:${d[k].length}/${n}`);
-  }
-  return problems;
 }
 
 const FIELDS = ['first', 'last2', 'front3', 'last3', 'near', 'second', 'third', 'fourth', 'fifth'];
