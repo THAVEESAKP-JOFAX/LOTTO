@@ -41,7 +41,7 @@ export async function handleEvent(ev, siteUrl, settings = null) {
     return nextCmd[1](upcomingDraw(draws.at(-1).date, todayInThailand()), draws, settings, siteUrl);
   }
   // ตีเลขจากข่าวดัง
-  if (/^(ข่าวดัง|เลขข่าว|เลขข่าวดัง|หวยข่าว|ข่าวเด่น|เลขเด็ดข่าว)$/.test(compact)) {
+  if (/^(ข่าวดัง|เลขดัง|เลขข่าว|เลขข่าวดัง|หวยข่าว|ข่าวเด่น|เลขเด็ดข่าว)$/.test(compact)) {
     const items = await loadNews().catch((err) => { console.error('line-webhook news', err.message); return null; });
     if (!items?.length) return [{ type: 'text', text: 'ดึงข่าวไม่สำเร็จ ลองใหม่อีกครั้งในอีกสักครู่ครับ' }];
     const when = new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }).format(new Date());

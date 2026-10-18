@@ -178,6 +178,7 @@ test('ตีเลขจากข่าวดัง: อ่าน RSS ตัด�
     const { handleEvent } = await import('../netlify/functions/line-webhook.mjs');
     const ev = (text) => ({ type: 'message', source: { type: 'group', groupId: 'C' }, message: { type: 'text', text } });
     const m = await handleEvent(ev('ข่าวดัง'), 'https://x', normalizeSettings({}));
+    assert.match((await handleEvent(ev('เลขดัง'), 'https://x', normalizeSettings({})))[0].altText, /เลขจากข่าวดัง/);
     assert.equal(m[0].type, 'flex');
     assert.match(m[0].altText, /เลขจากข่าวดัง[\s\S]*2 ตัว: 45/);
   } finally { globalThis.fetch = realFetch; }
