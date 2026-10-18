@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "node --test tests/*.test.js",
     "backtest": "node scripts/backtest-report.mjs",
-    "deploy": "node scripts/deploy.mjs"
+    "deploy": "node scripts/deploy.mjs",
+    "bot:test": "node scripts/bot-test.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "10.7.13",

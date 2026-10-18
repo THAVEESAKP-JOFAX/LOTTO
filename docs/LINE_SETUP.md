@@ -49,6 +49,16 @@ LINE Developers → แท็บ **Messaging API**
 2. bot ตอบกลับพร้อม **Group ID** (ขึ้นต้นด้วย `C…`) — พิมพ์ `groupid` ในกลุ่มเพื่อดูอีกครั้งได้
 3. ใส่ใน Netlify เป็น `LINE_GROUP_IDS` (หลายกลุ่มคั่นด้วย `,`) → **deploy อีกครั้ง**
 
+## ทดสอบส่งเข้า LINE จากเครื่องตัวเอง (ไม่ต้อง deploy)
+ทำได้ทันทีหลังขั้น 3 และรู้ Group ID แล้ว
+```bash
+npm run bot:test                     # รัน bot แล้วแสดงค่าอย่างเดียว ไม่ส่งออก
+npm run bot:test -- --check 48       # ทดสอบเลขเพิ่ม
+LINE_CHANNEL_ACCESS_TOKEN=xxx LINE_GROUP_IDS=Cxxx npm run bot:test -- --send   # ส่งจริง
+```
+> ยังไม่รู้ Group ID? ใส่ User ID ของตัวเอง (LINE Developers → Basic settings → Your user ID) แทน
+> แล้วเพิ่ม bot เป็นเพื่อน — ข้อความจะส่งเข้าแชตส่วนตัวกับ bot
+
 ## ขั้น 7 — ทดสอบ
 - พิมพ์ในกลุ่ม: `คำสั่ง` · `เลขเด็ด` · `ผลหวย` · `เช็ค 48` · `groupid`
 - หน้าเว็บส่วน **แจ้งเตือน LINE** → ใส่ `ALERT_ADMIN_KEY` → กด **ทดสอบการเชื่อมต่อ**

@@ -8,5 +8,6 @@ npm run fetch-data   # ดึงข้อมูล 10 ปี + ตรวจข�
 npm run backtest     # backtest ทุก bot
 npm test
 npm run dev          # http://localhost:5173
+npm run bot:test     # ทดสอบรัน bot: เลขงวดหน้า + ตรวจผลงวดล่าสุด (เพิ่ม --send เพื่อส่งเข้า LINE จริง)
 npm run deploy       # ถามยืนยันก่อน deploy ขึ้น Netlify ทุกครั้ง
 ```

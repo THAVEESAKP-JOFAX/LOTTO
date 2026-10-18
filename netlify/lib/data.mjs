@@ -11,8 +11,9 @@ async function text(url) {
   return res.ok ? res.text() : null;
 }
 
-export async function loadDraws(siteUrl = process.env.URL, now = new Date()) {
-  const base = JSON.parse(await text(`${siteUrl}/data/draws.json`)).draws;
+// baseDraws: ส่งประวัติมาเองได้ (เช่น สคริปต์ทดสอบที่อ่านจากไฟล์ในเครื่อง) แทนการโหลดจากเว็บ
+export async function loadDraws(siteUrl = process.env.URL, now = new Date(), baseDraws = null) {
+  const base = baseDraws ?? JSON.parse(await text(`${siteUrl}/data/draws.json`)).draws;
   const known = new Set(base.map((d) => d.date));
   const last = base.at(-1).date;
   const fresh = [];
