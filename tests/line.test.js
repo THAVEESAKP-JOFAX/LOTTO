@@ -208,3 +208,23 @@ test('การ์ด LINE ใช้หัว LOTTO-THAI และข้อค�
   assert.match(texts, /เลขที่แนะนำจาก LOTTO-THAI คือเลข/);
   assert.doesNotMatch(texts, /LOTTO ANALYTICS|เลขของ Bot/);
 });
+
+test('/api/draws: งวดใหม่ที่ออกหลัง deploy ขึ้นหน้าเว็บเองโดยไม่ต้อง deploy', async () => {
+  const { default: drawsApi } = await import('../netlify/functions/draws.mjs');
+  const base = draws.filter((d) => d.date < '2026-10-16');
+  const csv = 'date,first,second,third,fourth,fifth,last2,last3f,last3b,near1\n' +
+    '2026-10-16,011781,"040201,487283",,,,48,"392,402","171,255","011780,011782"\n';
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => new Response(String(url).endsWith('/data/draws.json') ? JSON.stringify({ draws: base }) : String(url).endsWith('.csv') ? csv : '', { status: String(url).includes('archive') ? 404 : 200 });
+  const realUrl = process.env.URL; process.env.URL = 'https://site.test';
+  try {
+    const res = await drawsApi(new Request('https://site.test/api/draws'));
+    const body = await res.json();
+    const last = body.draws.at(-1);
+    assert.equal(body.draws.length, base.length + 1);
+    assert.equal(last.date, '2026-10-16');
+    assert.equal(last.first, '011781');
+    assert.equal(last.partial, true); // รางวัลที่ 2–5 ยังไม่ครบ
+    assert.match(res.headers.get('netlify-cdn-cache-control'), /max-age=600/);
+  } finally { globalThis.fetch = realFetch; process.env.URL = realUrl; }
+});

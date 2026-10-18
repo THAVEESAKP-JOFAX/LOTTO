@@ -45,9 +45,20 @@ export function bindSeg(el, onChange) {
 }
 export const segValue = (el) => el.querySelector('.on')?.dataset.v;
 
+// ผลสลาก: ลอง /api/draws ก่อน (รวมงวดใหม่ที่ออกหลัง deploy) ถ้าไม่ได้ใช้ไฟล์ที่มากับเว็บ
+async function loadDrawsData() {
+  try {
+    const res = await fetch('/api/draws', { signal: AbortSignal.timeout(8000) });
+    if (res.ok) { const d = await res.json(); if (d.draws?.length) return d; }
+  } catch { /* ใช้ไฟล์สำรองด้านล่าง */ }
+  return fetch('/data/draws.json').then((r) => r.json());
+}
+
 export async function load() {
-  const [d, bt, val] = await Promise.all(
-    ['draws', 'backtest', 'validation'].map((f) => fetch(`/data/${f}.json`).then((r) => r.json())));
+  const [d, bt, val] = await Promise.all([
+    loadDrawsData(),
+    ...['backtest', 'validation'].map((f) => fetch(`/data/${f}.json`).then((r) => r.json())),
+  ]);
   return { draws: d.draws, updatedAt: d.updatedAt, backtest: bt, validation: val };
 }
 

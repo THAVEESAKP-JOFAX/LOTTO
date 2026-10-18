@@ -16,7 +16,7 @@
 - `src/lib/` — logic ที่ใช้ร่วมกันทั้ง Node และเบราว์เซอร์ (prizes, rng, analysis, bots, backtest)
 - `scripts/` — fetch-data, backtest-report, deploy
 - `netlify/functions/` — LINE: `line-webhook` (คำสั่งในกลุ่ม), `line-send` (ส่งจากเว็บ, ต้องมี ALERT_ADMIN_KEY),
-  `line-alert-picks` / `line-alert-result` (scheduled) · `netlify/lib/` — LINE client + โหลดผลงวดใหม่
+  `line-alert-picks` / `line-alert-result` (scheduled) · `draws` → `/api/draws` (หน้าเว็บโหลดงวดใหม่เองโดยไม่ต้อง deploy) · `netlify/lib/` — LINE client + โหลดผลงวดใหม่
 - หน้าเว็บ 2 หน้า: `index.html` (ผู้เข้าชม: สถิติ + ตรวจรางวัล) และ `admin.html` → `/admin` (ต้องเข้าสู่ระบบ: ตั้งค่า bot, ส่ง LINE, Bot/ทดสอบเลข/Backtest)
   ส่วนแสดงผลใช้ร่วมกันอยู่ใน `src/app.js` · การตั้งค่า bot เก็บใน Netlify Blobs (`netlify/lib/settings.mjs`)
 - Env บน Netlify: `LINE_CHANNEL_ACCESS_TOKEN`, `LINE_CHANNEL_SECRET`, `LINE_GROUP_IDS`, `ALERT_ADMIN_KEY`,

@@ -34,5 +34,7 @@ export async function loadDraws(siteUrl = process.env.URL, now = new Date(), bas
     const d = t && fromArchiveText(today, t);
     if (d && mainOk(d)) fresh.push({ ...d, source: 'archive' });
   }
+  // งวดใหม่ที่รางวัลย่อย (ที่ 2–5) ยังไม่ครบ → ตรวจรางวัลได้เฉพาะรางวัลหลัก
+  for (const d of fresh) if (checkDraw(d).length) d.partial = true;
   return [...base, ...fresh].sort((a, b) => a.date.localeCompare(b.date));
 }
