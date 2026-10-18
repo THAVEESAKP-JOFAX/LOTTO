@@ -34,4 +34,4 @@ if (answer !== 'deploy') {
   console.log('✗ ยกเลิก deploy');
   process.exit(1);
 }
-run(`npx --yes netlify-cli@17 deploy --dir=dist ${draft ? '' : '--prod'}`);
+run(`npx --yes netlify-cli@27 deploy --dir=dist ${draft ? '' : '--prod'}`);
