@@ -2,13 +2,24 @@
 // ตั้ง Webhook URL ใน LINE Developers เป็น https://<เว็บ>/api/line/webhook
 import { verifySignature, reply, markAsRead } from '../lib/line.mjs';
 import { loadDraws } from '../lib/data.mjs';
-import { picksMessage, resultMessage, checkText, HELP_TEXT } from '../../src/lib/line-messages.js';
+import { picksMessage, resultMessage, checkText, twoDigitMessage, threeDigitMessage, floatMessage, ticketCheckMessage, drawQuickReply, TICKET_HELP, HELP_TEXT } from '../../src/lib/line-messages.js';
+import { getSettings } from '../lib/settings.mjs';
+import { parseTickets } from '../../src/lib/ticket-check.js';
 import { upcomingDraw, todayInThailand } from '../../src/lib/schedule.js';
 import { parseDrawDate, drawQuery } from '../../src/lib/date-query.js';
 
 export const config = { path: '/api/line/webhook' };
 
-export async function handleEvent(ev, siteUrl) {
+// คำสั่งที่ใช้เลขของงวดถัดไป (เทียบหลังตัดช่องว่าง เช่น "เลข 2 ตัว" = "เลข2ตัว")
+const NEXT_DRAW_COMMANDS = [
+  [/^(เลขเด็ด|bot|เลขbot)$/, (date, draws, s, url) => [picksMessage(date, draws, url, s)]],
+  [/^(เลข2ตัว|2ตัว|เลขสองตัว|สองตัว)$/, (date, draws, s) => [twoDigitMessage(date, draws, s)]],
+  [/^(เลข3ตัว|3ตัว|เลขสามตัว|สามตัว)$/, (date, draws, s) => [threeDigitMessage(date, draws, s)]],
+  [/^(เลขลอยบน|ลอยบน|เลขวิ่งบน|วิ่งบน)$/, (date, draws, s) => [floatMessage('top', date, draws, s)]],
+  [/^(เลขลอยล่าง|ลอยล่าง|เลขวิ่งล่าง|วิ่งล่าง)$/, (date, draws, s) => [floatMessage('bottom', date, draws, s)]],
+];
+
+export async function handleEvent(ev, siteUrl, settings = null) {
   const groupId = ev.source?.groupId;
   if (ev.type === 'join' && groupId) {
     return [{ type: 'text', text: `สวัสดีครับ 🧠 LOTTO Bot เข้ากลุ่มแล้ว\nGroup ID: ${groupId}\nนำค่านี้ไปใส่ใน LINE_GROUP_IDS บน Netlify เพื่อรับแจ้งเตือนอัตโนมัติ\n\n${HELP_TEXT}` }];
@@ -18,13 +29,36 @@ export async function handleEvent(ev, siteUrl) {
   if (/^(groupid|group id|ไอดีกลุ่ม)$/.test(cmd)) {
     return [{ type: 'text', text: groupId ? `Group ID: ${groupId}` : 'คำสั่งนี้ใช้ได้ในกลุ่มเท่านั้น' }];
   }
-  if (/^(เลขเด็ด|bot|เลขbot|เลข bot)$/.test(cmd)) {
+  settings ??= await getSettings();
+  if (!settings.commands) return null; // ปิดการตอบคำสั่งไว้ในหน้า Admin
+  const compact = cmd.replace(/\s+/g, '');
+  const nextCmd = NEXT_DRAW_COMMANDS.find(([re]) => re.test(compact));
+  if (nextCmd) {
     const draws = await loadDraws(siteUrl);
-    return [picksMessage(upcomingDraw(draws.at(-1).date, todayInThailand()), draws, siteUrl)];
+    return nextCmd[1](upcomingDraw(draws.at(-1).date, todayInThailand()), draws, settings, siteUrl);
+  }
+  // ตรวจรางวัล: "ตรวจรางวัล 011781 123456 [งวด 16/10/69]"
+  const ticketCmd = cmd.match(/^(?:ตรวจรางวัล|ตรวจหวย|ตรวจสลาก|ตรวจลอตเตอรี่|ตรวจล็อตเตอรี่)\s*(.*)$/s);
+  if (ticketCmd) {
+    const rest = ticketCmd[1];
+    // วันที่ต้องไม่ติดกับตัวเลขข้างหน้า (กันไปกินหลักท้ายของเลขสลาก) · ลองแบบตัวเลขก่อน แล้วค่อยแบบชื่อเดือน
+    const dateMatch = rest.match(/(?:งวด\s*)?(?<!\d)(\d{1,2}\s*[/\-.]\s*\d{1,2}\s*[/\-.]\s*\d{2,4})(?!\d)/)
+      ?? rest.match(/(?:งวด\s*)?(?<!\d)(\d{1,2}\s*(?!งวด)[ก-๙.]+\s*\d{2,4})(?!\d)/);
+    const tickets = parseTickets(dateMatch ? rest.replace(dateMatch[0], ' ') : rest);
+    const draws = await loadDraws(siteUrl);
+    if (!tickets.length) return [{ type: 'text', text: TICKET_HELP }];
+    let date = null;
+    if (dateMatch) {
+      date = parseDrawDate(dateMatch[1], todayInThailand());
+      if (!date || !draws.some((d) => d.date === date)) {
+        return [{ type: 'text', text: 'ไม่พบผลของงวดที่ระบุ เลือกงวดจากปุ่มด้านล่างได้เลย', quickReply: drawQuickReply(draws, tickets, null) }];
+      }
+    }
+    return [ticketCheckMessage(draws, tickets, date)];
   }
   if (/^(ผลหวย|ผล|หวยออก|result)$/.test(cmd)) {
     const draws = await loadDraws(siteUrl);
-    return [resultMessage(draws.at(-1), draws, siteUrl)];
+    return [resultMessage(draws.at(-1), draws, siteUrl, settings)];
   }
   const check = cmd.match(/^(?:เช็ค|เช็ก|ตรวจ|ทดสอบ|check)\s*(\d{1,6})$/);
   if (check) {
@@ -39,7 +73,7 @@ export async function handleEvent(ev, siteUrl) {
     const date = parseDrawDate(dateCmd ? dateCmd[1] : cmd, today);
     if (!date) return dateCmd ? [{ type: 'text', text: 'อ่านวันที่ไม่ออก ลองพิมพ์แบบ "งวด 01/11/26" หรือ "งวด 1 พ.ย. 69"' }] : null;
     const draws = await loadDraws(siteUrl);
-    return drawQuery(draws, date, { today, siteUrl });
+    return drawQuery(draws, date, { today, siteUrl, settings });
   }
   if (/^(help|ช่วยเหลือ|คำสั่ง)$/.test(cmd)) return [{ type: 'text', text: HELP_TEXT }];
   return null; // ข้อความอื่นในกลุ่มไม่ต้องตอบ

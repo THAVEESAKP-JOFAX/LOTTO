@@ -4,6 +4,8 @@ import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { nextDrawDate, isDrawDay, upcomingDraw, todayInThailand } from '../src/lib/schedule.js';
 import { picksMessage, resultMessage, botPicksFor, scorePicks } from '../src/lib/line-messages.js';
+import { setSettingsStore } from '../netlify/lib/settings.mjs';
+setSettingsStore({ get: async () => null, setJSON: async () => {} });
 import { verifySignature } from '../netlify/lib/line.mjs';
 import webhook from '../netlify/functions/line-webhook.mjs';
 import send from '../netlify/functions/line-send.mjs';
@@ -160,4 +162,35 @@ test('webhook: ทำเครื่องหมาย "อ่านแล้ว
   assert.ok(read);
   assert.deepEqual(read.body, { markAsReadToken: 'tok-read' });
   assert.equal(read.auth, 'Bearer tok');
+});
+
+test('การ์ด LINE: พื้นฟ้า ไม่มีปุ่ม/ข้อความท้าย และไม่มีบรรทัดกลยุทธ์', () => {
+  const m = picksMessage('2026-11-01', draws, 'https://example.netlify.app');
+  const json = JSON.stringify(m);
+  assert.equal(m.contents.footer, undefined);
+  assert.ok(!json.includes('กลยุทธ์ที่ AI'));
+  assert.ok(!json.includes('เลข Bot งวดนี้'));
+  assert.ok(!json.includes('ดูบทวิเคราะห์เต็ม'));
+  assert.equal(m.contents.body.background.type, 'linearGradient');
+});
+
+test('webhook: เลข2ตัว / เลข3ตัว / เลขลอยบน / เลขลอยล่าง / ตรวจรางวัล', async () => {
+  const ask = async (text) => {
+    calls = [];
+    await webhook(signed({ events: [{ type: 'message', replyToken: 'rx', source: { type: 'group', groupId: 'Cabc' }, message: { type: 'text', text } }] }));
+    return calls.find((c) => c.url.endsWith('/reply'))?.body.messages;
+  };
+  assert.match((await ask('เลข 2 ตัว'))[0].altText, /เลขท้าย 2 ตัว/);
+  assert.match((await ask('เลข3ตัว'))[0].altText, /เลข 3 ตัว/);
+  assert.match((await ask('เลขลอยบน'))[0].altText, /เลขลอยบน/);
+  assert.match((await ask('ลอยล่าง'))[0].altText, /เลขลอยล่าง/);
+  const last = draws.at(-1);
+  const prev = draws.at(-2);
+  const t = await ask(`ตรวจรางวัล ${last.first}`);
+  assert.match(t[0].altText, /รางวัลที่ 1/);
+  assert.ok(t[0].quickReply.items.length > 0);
+  const [y, mo, d] = prev.date.split('-');
+  const t2 = await ask(`ตรวจรางวัล ${prev.first} งวด ${d}/${mo}/${Number(y) + 543 - 2500}`);
+  assert.match(t2[0].altText, /รางวัลที่ 1/);
+  assert.match((await ask('ตรวจรางวัล'))[0].text, /ตามด้วยเลข 6 หลัก/);
 });

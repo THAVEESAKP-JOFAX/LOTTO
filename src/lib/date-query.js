@@ -62,10 +62,10 @@ function nearestPast(draws, date) {
 const note = (t) => ({ type: 'text', text: t });
 
 // ตอบคำถามตามวันที่: งวดที่ออกแล้ว → ผล + ตรวจเลข bot · งวดในอนาคต → เลข bot
-export function drawQuery(draws, date, { today, siteUrl } = {}) {
+export function drawQuery(draws, date, { today, siteUrl, settings } = {}) {
   const latest = draws.at(-1).date;
   const found = draws.find((d) => d.date === date);
-  if (found) return [resultMessage(found, draws, siteUrl)];
+  if (found) return [resultMessage(found, draws, siteUrl, settings)];
 
   if (date > latest) {
     if (isDrawDay(date)) {
@@ -73,17 +73,17 @@ export function drawQuery(draws, date, { today, siteUrl } = {}) {
       const msgs = [];
       if (date === today) msgs.push(note(`งวด ${thDate(date)} ออกวันนี้ ผลยังไม่ออก — นี่คือเลขของ bot`));
       else if (date > upcoming) msgs.push(note(`งวด ${thDate(date)} ยังไม่ใช่งวดถัดไป (งวดถัดไปคือ ${thDate(upcoming)}) bot คำนวณจากข้อมูลถึงงวดล่าสุด`));
-      msgs.push(picksMessage(date, draws, siteUrl));
+      msgs.push(picksMessage(date, draws, siteUrl, settings));
       return msgs;
     }
     const prev = new Date(Date.parse(date + 'T00:00:00Z') - 864e5).toISOString().slice(0, 10);
     const next = nextDrawDate(prev);
-    return [note(`วันที่ ${thDate(date)} ไม่มีออกรางวัล งวดถัดไปคือ ${thDate(next)}`), picksMessage(next, draws, siteUrl)];
+    return [note(`วันที่ ${thDate(date)} ไม่มีออกรางวัล งวดถัดไปคือ ${thDate(next)}`), picksMessage(next, draws, siteUrl, settings)];
   }
 
   if (date < draws[0].date) {
     return [note(`มีข้อมูลตั้งแต่ ${thDate(draws[0].date)} ถึง ${thDate(latest)} เท่านั้น`)];
   }
   const near = nearestPast(draws, date);
-  return [note(`ไม่มีงวดวันที่ ${thDate(date)} — งวดที่ใกล้ที่สุดคือ ${thDate(near.date)}`), resultMessage(near, draws, siteUrl)];
+  return [note(`ไม่มีงวดวันที่ ${thDate(date)} — งวดที่ใกล้ที่สุดคือ ${thDate(near.date)}`), resultMessage(near, draws, siteUrl, settings)];
 }

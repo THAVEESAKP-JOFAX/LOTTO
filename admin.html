@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ผู้ดูแลระบบ — LOTTO Analytics</title>
+  <meta name="robots" content="noindex" />
+  <meta name="description" content="วิเคราะห์ผลสลากกินแบ่งรัฐบาลย้อนหลัง 10 ปี พร้อม Bot วิเคราะห์-สุ่มเลข และ Backtest อย่างตรงไปตรงมา" />
+  <meta name="theme-color" content="#f3f4fa" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Trirong:wght@500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body class="admin-page">
+  <header class="topbar">
+    <a class="brand" href="/"><img class="brand-mark" src="/favicon.svg" alt="" width="34" height="34" /><span>LOTTO <em>Admin</em></span></a>
+    <nav id="admin-nav" hidden>
+      <a href="#settings">ตั้งค่า Bot</a>
+      <a href="#line">แจ้งเตือน LINE</a>
+      <a href="#bot">Bot</a>
+      <a href="#check">ทดสอบเลข</a>
+      <a href="#backtest">Backtest</a>
+      <a href="/">← หน้าเว็บ</a>
+      <button class="btn btn-ghost btn-sm" id="logout">ออกจากระบบ</button>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section id="login" class="login-wrap">
+      <form class="card login-card" id="login-form">
+        <h2>เข้าสู่ระบบผู้ดูแล</h2>
+        <p class="sub">สำหรับตั้งค่า Bot ส่งแจ้งเตือน LINE และดูผลวิเคราะห์</p>
+        <label>ชื่อผู้ใช้<input id="login-user" autocomplete="username" required /></label>
+        <label>รหัสผ่าน<input id="login-pass" type="password" autocomplete="current-password" required /></label>
+        <button class="btn btn-primary" type="submit">เข้าสู่ระบบ</button>
+        <p class="status" id="login-status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <div id="admin" hidden>
+      <section id="settings" class="section">
+        <div class="section-head">
+          <p class="eyebrow">ตั้งค่า</p>
+          <h2>การทำงานของ Bot</h2>
+          <p class="sub">มีผลกับ LINE bot ทันทีหลังบันทึก ไม่ต้อง deploy ใหม่</p>
+        </div>
+        <form class="card settings" id="settings-form">
+          <div class="settings-grid">
+            <div>
+              <h3>แจ้งเตือนอัตโนมัติ</h3>
+              <label class="switch"><input type="checkbox" name="autoPicks" /><span></span>ส่งเลข Bot 09:00 น. วันออกรางวัล</label>
+              <label class="switch"><input type="checkbox" name="autoResult" /><span></span>ส่งผลรางวัลหลังผลออก</label>
+              <label class="switch"><input type="checkbox" name="commands" /><span></span>ตอบคำสั่งในกลุ่ม (เลขเด็ด, เลข2ตัว, ตรวจรางวัล ฯลฯ)</label>
+            </div>
+            <div>
+              <h3>เลขที่ Bot ส่ง</h3>
+              <label>กลยุทธ์<select name="botId" id="settings-bot"></select></label>
+              <div class="num-grid">
+                <label>2 ตัว<input type="number" name="picks.last2" min="1" max="10" /></label>
+                <label>3 ตัวท้าย<input type="number" name="picks.last3" min="1" max="10" /></label>
+                <label>3 ตัวหน้า<input type="number" name="picks.front3" min="1" max="10" /></label>
+                <label>6 หลัก<input type="number" name="picks.first" min="1" max="5" /></label>
+                <label>เลขลอย<input type="number" name="picks.float" min="1" max="5" /></label>
+              </div>
+            </div>
+            <div>
+              <h3>แสดงบนหน้าเว็บปกติ</h3>
+              <label class="switch"><input type="checkbox" name="public.bot" /><span></span>Bot วิเคราะห์ &amp; สุ่มเลข</label>
+              <label class="switch"><input type="checkbox" name="public.check" /><span></span>ทดสอบเลข</label>
+              <label class="switch"><input type="checkbox" name="public.backtest" /><span></span>Backtest</label>
+              <p class="note">ปิดไว้ = ผู้เข้าชมทั่วไปไม่เห็น ใช้ได้เฉพาะหน้านี้</p>
+            </div>
+          </div>
+          <div class="controls">
+            <button class="btn btn-primary" type="submit">บันทึกการตั้งค่า</button>
+            <span class="status" id="settings-status" aria-live="polite"></span>
+          </div>
+        </form>
+      </section>
+
+      <section id="line" class="section">
+        <div class="section-head">
+          <p class="eyebrow">แจ้งเตือน</p>
+          <h2>ส่ง Alert เข้ากลุ่ม LINE</h2>
+          <p class="sub">ส่งเข้าทุกกลุ่มที่ตั้งไว้ใน LINE_GROUP_IDS</p>
+        </div>
+        <div class="card">
+          <div class="controls line-actions">
+            <button class="btn btn-primary" data-type="picks">ส่งเลข Bot งวดถัดไป</button>
+            <button class="btn btn-ghost" data-type="result">ส่งผลงวดล่าสุด</button>
+            <button class="btn btn-ghost" data-type="test">ทดสอบการเชื่อมต่อ</button>
+          </div>
+          <p class="status" id="line-status" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section id="bot" class="section">
+      <div class="section-head">
+        <p class="eyebrow">Bot</p>
+        <h2>Bot วิเคราะห์ & สุ่มเลข</h2>
+        <p class="sub">เลือกกลยุทธ์ ประเภทรางวัล และจำนวนเลข — โหมด “วิเคราะห์” เลือกเลขคะแนนสูงสุด, โหมด “สุ่ม” สุ่มถ่วงน้ำหนักตามคะแนน</p>
+      </div>
+      <div class="bots" id="bot-list"></div>
+      <div class="card bot-panel">
+        <div class="controls">
+          <label>ประเภท<select id="bot-game"></select></label>
+          <label>จำนวนเลข<input id="bot-k" type="number" min="1" max="20" value="5" /></label>
+          <div class="seg" id="bot-mode">
+            <button data-v="analyze" class="on">วิเคราะห์</button>
+            <button data-v="random">สุ่ม</button>
+          </div>
+          <label>Seed <small>(ว่าง = สุ่มใหม่)</small><input id="bot-seed" inputmode="numeric" placeholder="เช่น 2569" /></label>
+          <button class="btn btn-primary" id="bot-run">ให้ Bot เลือก</button>
+        </div>
+        <div id="bot-out" class="bot-out" aria-live="polite"></div>
+      </div>
+    </section>
+
+      <section id="check" class="section">
+      <div class="section-head">
+        <p class="eyebrow">ทดสอบเลข</p>
+        <h2>ใส่เลขของคุณ ให้ Bot ทดสอบ</h2>
+        <p class="sub">เลข 2 หลัก = เลขท้าย 2 ตัว · 3 หลัก = 3 ตัวหน้าและ 3 ตัวท้าย · 6 หลัก = สลากเต็มใบ — ดูโอกาสจริง สถิติ 10 ปี มุมมองของ bot ทุกตัว และผลถ้าซื้อเลขนี้ทุกงวด</p>
+      </div>
+      <div class="card">
+        <form class="controls" id="check-form">
+          <label>เลขที่ต้องการทดสอบ<input id="check-input" inputmode="numeric" maxlength="6" placeholder="เช่น 48, 171 หรือ 011781" autocomplete="off" /></label>
+          <button class="btn btn-primary" type="submit">ทดสอบเลขนี้</button>
+        </form>
+        <div id="check-out" class="check-out" aria-live="polite"></div>
+      </div>
+    </section>
+
+      <section id="backtest" class="section">
+      <div class="section-head">
+        <p class="eyebrow">Backtest</p>
+        <h2>ถ้าเล่นตาม Bot มา 9 ปี จะเป็นอย่างไร</h2>
+        <p class="sub" id="bt-sub"></p>
+      </div>
+      <div class="card">
+        <div class="controls">
+          <div class="seg" id="bt-game"></div>
+          <div class="seg" id="bt-mode">
+            <button data-v="analyze" class="on">วิเคราะห์</button>
+            <button data-v="random">สุ่ม</button>
+          </div>
+          <label>เลขต่องวด<input id="bt-k" type="number" min="1" max="20" value="5" /></label>
+          <button class="btn btn-ghost" id="bt-run">คำนวณใหม่</button>
+          <span class="status" id="bt-status"></span>
+        </div>
+        <div class="chart-box tall"><canvas id="equity-chart"></canvas></div>
+        <p class="note">เส้น = กำไร/ขาดทุนสะสม (บาท) · แถบสีอ่อน = ช่วง 5–95% ของการสุ่มล้วน <span id="bt-runs"></span> รอบ</p>
+        <div class="table-wrap"><table class="table" id="bt-table"></table></div>
+        <div class="verdict" id="bt-verdict"></div>
+      </div>
+    </section>
+    </div>
+  </main>
+
+  <script type="module" src="/src/admin.js"></script>
+</body>
+</html>
