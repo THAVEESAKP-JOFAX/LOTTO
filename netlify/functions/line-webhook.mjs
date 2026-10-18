@@ -20,6 +20,7 @@ const NEXT_DRAW_COMMANDS = [
   [/^(เลข3ตัว|3ตัว|เลขสามตัว|สามตัว)$/, (date, draws, s) => [threeDigitMessage(date, draws, s)]],
   [/^(เลขลอยบน|ลอยบน|เลขวิ่งบน|วิ่งบน)$/, (date, draws, s) => [floatMessage('top', date, draws, s)]],
   [/^(เลขลอยล่าง|ลอยล่าง|เลขวิ่งล่าง|วิ่งล่าง)$/, (date, draws, s) => [floatMessage('bottom', date, draws, s)]],
+  [/^(เลขลอย|ลอย|เลขวิ่ง|วิ่ง)$/, (date, draws, s) => [floatMessage('top', date, draws, s), floatMessage('bottom', date, draws, s)]],
 ];
 
 export async function handleEvent(ev, siteUrl, settings = null) {

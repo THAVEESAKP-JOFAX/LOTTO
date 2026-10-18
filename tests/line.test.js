@@ -183,6 +183,10 @@ test('webhook: เลข2ตัว / เลข3ตัว / เลขลอยบ
   assert.match((await ask('เลข 2 ตัว'))[0].altText, /เลขท้าย 2 ตัว/);
   assert.match((await ask('เลข3ตัว'))[0].altText, /เลข 3 ตัว/);
   assert.match((await ask('เลขลอยบน'))[0].altText, /เลขลอยบน/);
+  const both = await ask('เลขลอย');
+  assert.equal(both.length, 2);
+  assert.match(both[0].altText, /เลขลอยบน/);
+  assert.match(both[1].altText, /เลขลอยล่าง/);
   assert.match((await ask('ลอยล่าง'))[0].altText, /เลขลอยล่าง/);
   const last = draws.at(-1);
   const prev = draws.at(-2);
