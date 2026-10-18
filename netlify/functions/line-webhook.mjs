@@ -6,7 +6,7 @@ import { picksMessage, resultMessage, checkText, twoDigitMessage, threeDigitMess
 import { getSettings } from '../lib/settings.mjs';
 import { loadNews } from '../lib/news.mjs';
 import { parseTickets } from '../../src/lib/ticket-check.js';
-import { parseDay, dayOf } from '../../src/lib/lucky-day.js';
+import { parseDay, dayOf, bareDay } from '../../src/lib/lucky-day.js';
 import { parseBirthMonth, parseBirthYear } from '../../src/lib/lucky-birth.js';
 import { upcomingDraw, todayInThailand } from '../../src/lib/schedule.js';
 import { parseDrawDate, drawQuery } from '../../src/lib/date-query.js';
@@ -66,6 +66,9 @@ export async function handleEvent(ev, siteUrl, settings = null) {
     if (luckyCmd[1] && !day) return [{ type: 'text', text: 'ไม่รู้จักวันนี้ ลองพิมพ์ เช่น "เลขประจำวัน จันทร์" หรือ "เลขประจำวัน พุธกลางคืน"' }];
     return [luckyDayMessage(day ?? dayOf(todayInThailand()), !day)];
   }
+  // พิมพ์ชื่อวันอย่างเดียว เช่น "พุธกลางวัน" หรือ "วันเกิดวันเสาร์"
+  const onlyDay = bareDay(compact);
+  if (onlyDay) return [luckyDayMessage(onlyDay)];
   // ตรวจรางวัล: "ตรวจรางวัล 011781 123456 [งวด 16/10/69]"
   const ticketCmd = cmd.match(/^(?:ตรวจรางวัล|ตรวจหวย|ตรวจสลาก|ตรวจลอตเตอรี่|ตรวจล็อตเตอรี่)\s*(.*)$/s);
   if (ticketCmd) {

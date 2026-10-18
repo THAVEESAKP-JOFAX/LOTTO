@@ -122,6 +122,10 @@ test('เลขมงคลตามวันเกิด (ทักษา): ก
   assert.equal(r[0].quickReply.items.length, 7);
   assert.ok(r[0].quickReply.items.every((i) => !i.action.label.includes('กลางคืนกลางคืน')));
   assert.match((await handleEvent(ev('เลขประจำวัน'), 'https://x', on))[0].altText, /เลขมงคลคนเกิดวัน/);
+  assert.match((await handleEvent(ev('พูธกลางวัน'), 'https://x', on))[0].altText, /วันพุธ \(กลางวัน\)/);
+  assert.match((await handleEvent(ev('พุธกลางคืน'), 'https://x', on))[0].altText, /ราหู/);
+  assert.match((await handleEvent(ev('วันจันทร์'), 'https://x', on))[0].altText, /วันจันทร์/);
+  assert.equal(await handleEvent(ev('วันนี้วันศุกร์ไปกินข้าว'), 'https://x', on), null); // แชตทั่วไปไม่ตอบ
 });
 
 test('เลขมงคลตามเดือนเกิด / ปีเกิด และคำสั่ง LINE', async () => {
