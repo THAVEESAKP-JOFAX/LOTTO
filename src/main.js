@@ -19,7 +19,7 @@ const BOT_COLOR = {
   positional: '#199e70', markov: '#9085e9', ensemble: '#d55181', bayes: '#008300', adaptive: '#e66767',
 };
 const INK = { text: '#ece6d6', muted: '#9a9384', grid: 'rgba(232,200,120,0.08)' };
-Chart.defaults.font.family = "'IBM Plex Sans Thai', system-ui, sans-serif";
+Chart.defaults.font.family = "'Anuphan', system-ui, sans-serif";
 Chart.defaults.color = INK.muted;
 
 const $ = (s) => document.querySelector(s);
