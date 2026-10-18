@@ -30,7 +30,9 @@ const pairs = (digits) => {
 
 // "ต.ค." / "ตุลาคม" / "10" / "25/10" / "25 ต.ค." → { month, day|null }
 export function parseBirthMonth(text) {
-  const t = String(text).replace(/\s+|เดือน|เกิด|วันที่/g, '');
+  // ตัดปีท้ายออก ("25/10/2530", "ต.ค. 2530") — เดือนเกิดไม่ใช้ปี
+  const t = String(text).replace(/[๐-๙]/g, (d) => '๐๑๒๓๔๕๖๗๘๙'.indexOf(d)).replace(/\s+|เดือน|เกิด|วันที่|พ\.?ศ\.?|ค\.?ศ\.?/g, '')
+    .replace(/^(\d{1,2}[/\-.]\d{1,2})[/\-.]\d{2,4}$/, '$1').replace(/^(\d{0,2}[ก-๙.]+?)\d{2,4}$/, '$1');
   if (!t) return null;
   let m = t.match(/^(\d{1,2})[/\-.](\d{1,2})$/);
   if (m) return valid(Number(m[2]), Number(m[1]));
@@ -62,7 +64,9 @@ export function monthLucky({ month, day }) {
 
 // "2530" / "1987" / "30" → ปี พ.ศ.
 export function parseBirthYear(text, currentBE = 2569) {
-  const t = String(text).replace(/\s+|ปี|เกิด|พ\.?ศ\.?|ค\.?ศ\.?/g, '');
+  // รับวันเกิดเต็มได้ด้วย เช่น "25/10/2530" หรือ "25 ต.ค. 2530" → ใช้ตัวเลขชุดสุดท้าย
+  const t = String(text).replace(/[๐-๙]/g, (d) => '๐๑๒๓๔๕๖๗๘๙'.indexOf(d)).replace(/\s+|ปี|เกิด|พ\.?ศ\.?|ค\.?ศ\.?/g, '')
+    .replace(/^.*?(?:[/\-.]|[ก-๙]\.?)(\d{2,4})$/, '$1');
   if (!/^\d{2}$|^\d{4}$/.test(t)) return null;
   const n = Number(t);
   if (t.length === 2) return n <= currentBE % 100 ? 2500 + n : 2400 + n;

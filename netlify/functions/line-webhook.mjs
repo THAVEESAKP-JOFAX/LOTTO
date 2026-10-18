@@ -49,18 +49,18 @@ export async function handleEvent(ev, siteUrl, settings = null) {
     return [newsMessage(items, `${when} น.`)];
   }
   // เลขมงคลตามเดือนเกิด / ปีเกิด
-  const monthCmd = compact.match(/^(?:เลขเดือนเกิด|เลขตามเดือนเกิด|เลขประจำเดือนเกิด)(.*)$/);
+  const monthCmd = compact.match(/^(?:เลขเดือนเกิด|เลขตามเดือนเกิด|เลขประจำเดือนเกิด|เลขประจำเดือน|เลขเดือน|เดือนเกิด)(.*)$/);
   if (monthCmd) {
     const parsed = parseBirthMonth(monthCmd[1]);
     return [parsed ? birthMonthMessage(parsed) : BIRTH_HELP.month];
   }
-  const yearCmd = compact.match(/^(?:เลขปีเกิด|เลขตามปีเกิด|เลขประจำปีเกิด|เลขนักษัตร)(.*)$/);
+  const yearCmd = compact.match(/^(?:เลขปีเกิด|เลขตามปีเกิด|เลขประจำปีเกิด|เลขประจำปี|เลขนักษัตร|เลขปี|ปีเกิด)(.*)$/);
   if (yearCmd) {
     const be = parseBirthYear(yearCmd[1], Number(todayInThailand().slice(0, 4)) + 543);
     return [be ? birthYearMessage(be) : BIRTH_HELP.year];
   }
   // เลขมงคลตามวันเกิด: "เลขประจำวัน" (วันนี้) หรือ "เลขประจำวัน จันทร์"
-  const luckyCmd = compact.match(/^(?:เลขประจำวัน|เลขมงคล|เลขวันเกิด|เลขประจำวันเกิด)(.*)$/);
+  const luckyCmd = compact.match(/^(?:เลขประจำวันเกิด|เลขประจำวัน|เลขมงคล|เลขวันเกิด|เลขวัน|วันเกิด)(.*)$/);
   if (luckyCmd) {
     const day = parseDay(luckyCmd[1]);
     if (luckyCmd[1] && !day) return [{ type: 'text', text: 'ไม่รู้จักวันนี้ ลองพิมพ์ เช่น "เลขประจำวัน จันทร์" หรือ "เลขประจำวัน พุธกลางคืน"' }];

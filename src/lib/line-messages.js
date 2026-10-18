@@ -150,7 +150,7 @@ export function luckyDayMessage(day, isToday = false) {
     { type: 'separator', margin: 'md', color: C.line },
     row('เลข 2 ตัว', l.two.join('  '), { color: C.hi }),
     row('เลข 3 ตัว', l.three.slice(0, 3).join('  ')),
-    row('', l.three.slice(3).join('  ')),
+    text(l.three.slice(3).join('  '), { align: 'end', weight: 'bold', margin: 'sm' }), // LINE ไม่รับข้อความว่าง จึงไม่ใช้ row ที่ไม่มีหัวข้อ
     row('ควรเลี่ยง (กาลกิณี)', String(l.kalakini), { color: C.muted, weight: 'regular' }),
     text('ตามหลักทักษา · กดปุ่มด้านล่างเพื่อดูวันเกิดอื่น', { size: 'xxs', color: C.muted, margin: 'md' }),
   ];

@@ -167,6 +167,7 @@ test('ตีเลขจากข่าวดัง: อ่าน RSS ตัด�
   assert.equal(items[1].title, 'ราคาทอง 2569 ขึ้น 1,250 บาท & ปิดตลาด');
   assert.deepEqual(numbersIn(items[1].title), ['1250']);
   assert.deepEqual(numbersIn(items[3].title), ['45', '7']);
+  assert.deepEqual(numbersIn('ราคาทอง 18 ต.ค. ขึ้น 500 ประชุม 1/11/69'), ['500']); // ไม่นับวันที่
   const r = newsNumbers(items);
   assert.equal(r.news.length, 3);
   assert.equal(r.two[0], '45'); // 45 อยู่ในข่าวอันดับ 1 และ 4
@@ -182,4 +183,26 @@ test('ตีเลขจากข่าวดัง: อ่าน RSS ตัด�
     assert.equal(m[0].type, 'flex');
     assert.match(m[0].altText, /เลขจากข่าวดัง[\s\S]*2 ตัว: 45/);
   } finally { globalThis.fetch = realFetch; }
+});
+
+// LINE ตอบ 400 "must be non-empty text" ถ้ามี text ว่างแม้แต่จุดเดียว → bot เงียบทั้งข้อความ
+const emptyTexts = (n, p = '') => (n && typeof n === 'object'
+  ? [...(n.type === 'text' && 'text' in n && !String(n.text).trim() ? [p] : []),
+    ...Object.entries(n).flatMap(([k, v]) => emptyTexts(v, `${p}/${k}`))]
+  : []);
+
+test('เลขประจำวัน / เลขเดือนเกิด / เลขปีเกิด: ไม่มีข้อความว่าง และพิมพ์ได้หลายแบบ', async () => {
+  const { handleEvent } = await import('../netlify/functions/line-webhook.mjs');
+  const ask = async (text) => handleEvent({ type: 'message', source: { type: 'group', groupId: 'C' }, message: { type: 'text', text } }, 'https://x', normalizeSettings({}));
+  const cmds = ['เลขประจำวัน', 'เลขประจำวัน อาทิตย์', 'เลขประจำวัน พุธกลางคืน', 'เลขวันเกิด เสาร์', 'เลขวัน ศุกร์',
+    'เลขเดือนเกิด', 'เลขเดือนเกิด ต.ค.', 'เลขเดือนเกิด 25/10/2530', 'เลขเดือน มกราคม', 'เลขประจำเดือน 4',
+    'เลขปีเกิด', 'เลขปีเกิด 2530', 'เลขปีเกิด 25/10/2530', 'เลขปี 1987', 'เลขประจำปี 30', 'เลขนักษัตร ๒๕๓๐'];
+  for (const c of cmds) {
+    const r = await ask(c);
+    assert.ok(r?.length, `${c} ต้องมีคำตอบ`);
+    assert.deepEqual(r.flatMap((m) => emptyTexts(m)), [], `${c} มีข้อความว่าง`);
+  }
+  assert.match((await ask('เลขวัน ศุกร์'))[0].altText, /วันศุกร์/);
+  assert.match((await ask('เลขประจำเดือน 4'))[0].altText, /เมษายน/);
+  assert.match((await ask('เลขปี 1987'))[0].altText, /2530/);
 });

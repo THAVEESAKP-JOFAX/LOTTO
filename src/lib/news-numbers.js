@@ -20,9 +20,13 @@ export function parseRss(xml) {
 }
 
 const THAI_DIGITS = '๐๑๒๓๔๕๖๗๘๙';
+// วันที่ในหัวข้อข่าว เช่น "18 ต.ค." / "18 ตุลาคม" / "18/10" — เป็นวันที่ของข่าว ไม่ใช่ตัวเลขในเนื้อข่าว
+const MONTH_WORDS = 'ม\\.ค\\.|ก\\.พ\\.|มี\\.ค\\.|เม\\.ย\\.|พ\\.ค\\.|มิ\\.ย\\.|ก\\.ค\\.|ส\\.ค\\.|ก\\.ย\\.|ต\\.ค\\.|พ\\.ย\\.|ธ\\.ค\\.|มกรา|กุมภา|มีนา|เมษา|พฤษภา|มิถุนา|กรกฎา|สิงหา|กันยา|ตุลา|พฤศจิกา|ธันวา';
+const DATE_RE = new RegExp(`(?<!\\d)\\d{1,2}\\s*(?:${MONTH_WORDS})|(?<!\\d)\\d{1,2}/\\d{1,2}(?:/\\d{2,4})?(?!\\d)`, 'g');
 // ตัวเลขในหัวข้อข่าว — ไม่นับปี (พ.ศ. 25xx / ค.ศ. 19xx–20xx) เพราะเกือบทุกข่าวมี และไม่นับเลข 0 ล้วน
 export function numbersIn(title) {
-  const t = String(title).replace(/[๐-๙]/g, (d) => THAI_DIGITS.indexOf(d)).replace(/(\d),(?=\d{3})/g, '$1');
+  const t = String(title).replace(/[๐-๙]/g, (d) => THAI_DIGITS.indexOf(d)).replace(/(\d),(?=\d{3})/g, '$1')
+    .replace(DATE_RE, ' ');
   return (t.match(/\d+/g) ?? []).filter((n) => {
     if (/^0+$/.test(n)) return false;
     const v = Number(n);
