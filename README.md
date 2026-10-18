@@ -1,6 +1,6 @@
 # LOTTO Analytics — วิเคราะห์หวยไทยย้อนหลัง 10 ปี
 
-ดูแผนเต็มใน [PLAN.md](PLAN.md)
+ดูแผนเต็มใน [PLAN.md](PLAN.md) · ตั้งค่า LINE bot: [docs/LINE_SETUP.md](docs/LINE_SETUP.md)
 
 ```bash
 npm install
