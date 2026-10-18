@@ -18,7 +18,7 @@ const BOT_COLOR = {
   random: '#8a96a3', hot: '#eb6834', cold: '#2a78d6', overdue: '#eda100',
   positional: '#1baf7a', markov: '#6250d6', ensemble: '#e87ba4', bayes: '#008300', adaptive: '#e34948',
 };
-const INK = { text: '#0f2a44', muted: '#4f6b85', grid: 'rgba(15,42,68,0.08)' };
+const INK = { text: '#1f2333', muted: '#5c6378', grid: 'rgba(31,35,51,0.07)' };
 Chart.defaults.font.family = "'Anuphan', system-ui, sans-serif";
 Chart.defaults.color = INK.muted;
 
@@ -119,7 +119,7 @@ function renderHuay(draws) {
     $('#heatmap').innerHTML = vals.map((v, n) => {
       const a = 0.06 + 0.84 * ((v - min) / (max - min || 1));
       const tip = `${pad(n, 2)} · ออก ${freq[n]} ครั้ง · ค้าง ${gap[n]} งวด`;
-      return `<div class="cell${latest.has(pad(n, 2)) ? ' latest-hit' : ''}" style="background:rgba(42,127,212,${a.toFixed(3)});color:${a > 0.55 ? '#fff' : INK.text}" title="${tip}" aria-label="${tip}">${pad(n, 2)}</div>`;
+      return `<div class="cell${latest.has(pad(n, 2)) ? ' latest-hit' : ''}" style="background:rgba(91,108,240,${a.toFixed(3)});color:${a > 0.55 ? '#fff' : INK.text}" title="${tip}" aria-label="${tip}">${pad(n, 2)}</div>`;
     }).join('');
     const expect = (draws.length / 100).toFixed(1);
     $('#heat-title').textContent = huay.metric === 'freq' ? 'แผนที่ความถี่ 00–99' : 'แผนที่งวดที่ค้าง 00–99';
@@ -143,7 +143,7 @@ function renderPosMap(el, m, labels) {
   el.innerHTML = `<div></div>${[...Array(10).keys()].map((d) => `<div class="h">${d}</div>`).join('')}` +
     m.map((row, p) => `<div class="row-label">${labels[p]}</div>` + row.map((c, d) => {
       const a = 0.06 + 0.84 * ((c - min) / (max - min || 1));
-      return `<div class="cell" style="background:rgba(42,127,212,${a.toFixed(3)});color:${a > 0.55 ? '#fff' : INK.text}" title="${labels[p]} หลัก ${d}: ${c} ครั้ง">${c}</div>`;
+      return `<div class="cell" style="background:rgba(91,108,240,${a.toFixed(3)});color:${a > 0.55 ? '#fff' : INK.text}" title="${labels[p]} หลัก ${d}: ${c} ครั้ง">${c}</div>`;
     }).join('')).join('');
 }
 
@@ -160,7 +160,7 @@ function renderLottery(draws) {
   for (let i = lo; i <= hi; i++) { labels.push(i); data.push(s.sumHist[i] || 0); }
   new Chart($('#sum-chart'), {
     type: 'bar',
-    data: { labels, datasets: [{ label: 'จำนวนงวด', data, backgroundColor: '#3b8fe0', borderRadius: 4, borderSkipped: 'start', barPercentage: 0.86, categoryPercentage: 1 }] },
+    data: { labels, datasets: [{ label: 'จำนวนงวด', data, backgroundColor: '#6d74f2', borderRadius: 4, borderSkipped: 'start', barPercentage: 0.86, categoryPercentage: 1 }] },
     options: {
       maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { callbacks: { title: (i) => `ผลรวมหลัก ${i[0].label}`, label: (i) => `${i.raw} งวด` } } },
@@ -298,7 +298,7 @@ function show(res, k) {
   const dates = bots[0].dates;
   $('#bt-runs').textContent = res.runs;
   const ds = [
-    { label: 'สุ่ม 95%', data: res.baseline.band.map((b) => b.hi), borderWidth: 0, pointRadius: 0, fill: '+1', backgroundColor: 'rgba(42,127,212,0.12)' },
+    { label: 'สุ่ม 95%', data: res.baseline.band.map((b) => b.hi), borderWidth: 0, pointRadius: 0, fill: '+1', backgroundColor: 'rgba(91,108,240,0.12)' },
     { label: 'สุ่ม 5%', data: res.baseline.band.map((b) => b.lo), borderWidth: 0, pointRadius: 0, fill: false },
     ...bots.map((b) => ({
       label: BOTS.find((x) => x.id === b.botId).name,
