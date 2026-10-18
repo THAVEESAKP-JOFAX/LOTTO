@@ -150,3 +150,35 @@ test('เลขมงคลตามเดือนเกิด / ปีเก�
   assert.match((await handleEvent(ev('เลขเดือนเกิด'), 'https://x', on))[0].text, /ตามด้วยเดือน/);
   assert.match((await handleEvent(ev('เลขปีเกิด'), 'https://x', on))[0].text, /ตามด้วยปี/);
 });
+
+const RSS = `<?xml version="1.0"?><rss><channel><title>Google News</title>
+<item><title>หนุ่มวัย 45 ปี ถูกรางวัลที่ 1 ทะเบียนรถ 1กข 4589 - ไทยรัฐ</title><link>https://n/1</link><source url="https://thairath.co.th">ไทยรัฐ</source></item>
+<item><title><![CDATA[ราคาทอง 2569 ขึ้น 1,250 บาท &amp; ปิดตลาด - ข่าวสด]]></title><link>https://n/2</link><source url="https://khaosod.co.th">ข่าวสด</source></item>
+<item><title>นายกฯ ประชุม ครม. ไม่มีตัวเลข - มติชน</title><link>https://n/3</link><source url="https://matichon.co.th">มติชน</source></item>
+<item><title>ไฟไหม้บ้านเลขที่ ๔๕ ซอย 7 - PPTV</title><link>https://n/4</link><source url="https://pptv">PPTV</source></item>
+</channel></rss>`;
+
+test('ตีเลขจากข่าวดัง: อ่าน RSS ตัดชื่อสำนักข่าว ไม่นับเลขปี และคำสั่ง LINE', async () => {
+  const { parseRss, numbersIn, newsNumbers } = await import('../src/lib/news-numbers.js');
+  const items = parseRss(RSS);
+  assert.equal(items.length, 4);
+  assert.equal(items[0].title, 'หนุ่มวัย 45 ปี ถูกรางวัลที่ 1 ทะเบียนรถ 1กข 4589');
+  assert.equal(items[0].source, 'ไทยรัฐ');
+  assert.equal(items[1].title, 'ราคาทอง 2569 ขึ้น 1,250 บาท & ปิดตลาด');
+  assert.deepEqual(numbersIn(items[1].title), ['1250']);
+  assert.deepEqual(numbersIn(items[3].title), ['45', '7']);
+  const r = newsNumbers(items);
+  assert.equal(r.news.length, 3);
+  assert.equal(r.two[0], '45'); // 45 อยู่ในข่าวอันดับ 1 และ 4
+  assert.ok(r.three.includes('589') && r.three.includes('250'));
+
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(RSS);
+  try {
+    const { handleEvent } = await import('../netlify/functions/line-webhook.mjs');
+    const ev = (text) => ({ type: 'message', source: { type: 'group', groupId: 'C' }, message: { type: 'text', text } });
+    const m = await handleEvent(ev('ข่าวดัง'), 'https://x', normalizeSettings({}));
+    assert.equal(m[0].type, 'flex');
+    assert.match(m[0].altText, /เลขจากข่าวดัง[\s\S]*2 ตัว: 45/);
+  } finally { globalThis.fetch = realFetch; }
+});

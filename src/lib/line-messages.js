@@ -8,6 +8,7 @@ import { floatingDigits } from './floating.js';
 import { checkTickets } from './ticket-check.js';
 import { DAYS, luckyNumbers } from './lucky-day.js';
 import { MONTHS, monthLucky, yearLucky } from './lucky-birth.js';
+import { newsNumbers } from './news-numbers.js';
 import { DEFAULT_SETTINGS } from './settings.js';
 
 const C = {
@@ -201,6 +202,29 @@ export function birthYearMessage(be) {
   return flex(alt, bubble(`พ.ศ. ${y.be} (ค.ศ. ${y.ad})`, body, 'เลขมงคลตามปีเกิด'));
 }
 
+// คำสั่ง "ข่าวดัง": ตีเลขจากตัวเลขในหัวข้อข่าวเด่น
+export function newsMessage(items, when = '') {
+  const r = newsNumbers(items);
+  if (!r.news.length) return { type: 'text', text: 'ตอนนี้ข่าวเด่นยังไม่มีตัวเลขให้ตีเลข ลองใหม่อีกสักพักครับ' };
+  const cut = (t, n) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
+  const body = [
+    ...r.news.map((x, i) => ({
+      type: 'box', layout: 'vertical', margin: 'md',
+      contents: [
+        text(`${i + 1}. ${cut(x.title, 70)}`, { size: 'xs' }),
+        text(`${x.source ? `${x.source} · ` : ''}เลขในข่าว ${x.numbers.join(', ')}`, { size: 'xxs', color: C.hi, margin: 'xs' }),
+      ],
+    })),
+    { type: 'separator', margin: 'lg', color: C.line },
+    row('เลขเด่น', r.main.join('  '), { color: C.hi, size: 'xl' }),
+    ...(r.two.length ? [row('เลข 2 ตัว', r.two.join('  '), { color: C.hi })] : []),
+    ...(r.three.length ? [row('เลข 3 ตัว', r.three.join('  '))] : []),
+    text(`ตีจากตัวเลขในหัวข้อข่าวเด่น ${r.scanned} ข่าว (Google News) · ไม่นับเลขปี · เพื่อความบันเทิง`, { size: 'xxs', color: C.muted, margin: 'md' }),
+  ];
+  const alt = `เลขจากข่าวดัง\nเลขเด่น ${r.main.join(' ')}\n2 ตัว: ${r.two.join(' ')}${r.three.length ? `\n3 ตัว: ${r.three.join(' ')}` : ''}`;
+  return flex(alt, bubble(when ? `ข่าวเด่นล่าสุด · ${when}` : 'ข่าวเด่นล่าสุด', body, 'เลขเด็ดจากข่าวดัง'));
+}
+
 export const BIRTH_HELP = {
   month: { type: 'text', text: 'พิมพ์ "เลขเดือนเกิด" ตามด้วยเดือน เช่น เลขเดือนเกิด ต.ค. หรือ เลขเดือนเกิด 25/10 (ใส่วันที่จะได้ราศีที่แม่นขึ้น)',
     quickReply: { items: MONTHS.map((name) => ({ type: 'action', action: { type: 'message', label: name, text: `เลขเดือนเกิด ${name}` } })).slice(0, 13) } },
@@ -266,4 +290,4 @@ export function checkText(draws, raw) {
 
 export const HELP_TEXT =
   'คำสั่ง LOTTO Bot\n• "เลขเด็ด" — เลขของ bot สำหรับงวดถัดไป\n• "เลข2ตัว" — เลขท้าย 2 ตัว\n• "เลข3ตัว" — เลขท้าย 3 ตัว + เลขหน้า 3 ตัว\n' +
-  '• "เลขลอยบน" / "เลขลอยล่าง" — เลขวิ่งหลักเดียว\n• "เลขประจำวัน" หรือ "เลขประจำวัน จันทร์" — เลขมงคลตามวันเกิด\n• "เลขเดือนเกิด ต.ค." / "เลขปีเกิด 2530" — เลขมงคลตามเดือน/ปีเกิด\n• "ผลหวย" — ผลงวดล่าสุด\n• "ตรวจรางวัล 011781" — ตรวจสลาก (เลือกงวดได้)\n• "เช็ค 48" — ทดสอบเลขของคุณ\n• "งวด 01/11/26" — เลขหรือผลของงวดนั้น\n• "groupid" — แสดง ID ของกลุ่มนี้';
+  '• "เลขลอยบน" / "เลขลอยล่าง" — เลขวิ่งหลักเดียว\n• "เลขประจำวัน" หรือ "เลขประจำวัน จันทร์" — เลขมงคลตามวันเกิด\n• "เลขเดือนเกิด ต.ค." / "เลขปีเกิด 2530" — เลขมงคลตามเดือน/ปีเกิด\n• "ข่าวดัง" — ตีเลขจากข่าวเด่นล่าสุด\n• "ผลหวย" — ผลงวดล่าสุด\n• "ตรวจรางวัล 011781" — ตรวจสลาก (เลือกงวดได้)\n• "เช็ค 48" — ทดสอบเลขของคุณ\n• "งวด 01/11/26" — เลขหรือผลของงวดนั้น\n• "groupid" — แสดง ID ของกลุ่มนี้';

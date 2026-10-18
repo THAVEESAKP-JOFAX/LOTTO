@@ -2,8 +2,9 @@
 // ตั้ง Webhook URL ใน LINE Developers เป็น https://<เว็บ>/api/line/webhook
 import { verifySignature, reply, markAsRead } from '../lib/line.mjs';
 import { loadDraws } from '../lib/data.mjs';
-import { picksMessage, resultMessage, checkText, twoDigitMessage, threeDigitMessage, floatMessage, ticketCheckMessage, drawQuickReply, luckyDayMessage, birthMonthMessage, birthYearMessage, BIRTH_HELP, TICKET_HELP, HELP_TEXT } from '../../src/lib/line-messages.js';
+import { picksMessage, resultMessage, checkText, twoDigitMessage, threeDigitMessage, floatMessage, ticketCheckMessage, drawQuickReply, luckyDayMessage, birthMonthMessage, birthYearMessage, newsMessage, BIRTH_HELP, TICKET_HELP, HELP_TEXT } from '../../src/lib/line-messages.js';
 import { getSettings } from '../lib/settings.mjs';
+import { loadNews } from '../lib/news.mjs';
 import { parseTickets } from '../../src/lib/ticket-check.js';
 import { parseDay, dayOf } from '../../src/lib/lucky-day.js';
 import { parseBirthMonth, parseBirthYear } from '../../src/lib/lucky-birth.js';
@@ -38,6 +39,13 @@ export async function handleEvent(ev, siteUrl, settings = null) {
   if (nextCmd) {
     const draws = await loadDraws(siteUrl);
     return nextCmd[1](upcomingDraw(draws.at(-1).date, todayInThailand()), draws, settings, siteUrl);
+  }
+  // ตีเลขจากข่าวดัง
+  if (/^(ข่าวดัง|เลขข่าว|เลขข่าวดัง|หวยข่าว|ข่าวเด่น|เลขเด็ดข่าว)$/.test(compact)) {
+    const items = await loadNews().catch((err) => { console.error('line-webhook news', err.message); return null; });
+    if (!items?.length) return [{ type: 'text', text: 'ดึงข่าวไม่สำเร็จ ลองใหม่อีกครั้งในอีกสักครู่ครับ' }];
+    const when = new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }).format(new Date());
+    return [newsMessage(items, `${when} น.`)];
   }
   // เลขมงคลตามเดือนเกิด / ปีเกิด
   const monthCmd = compact.match(/^(?:เลขเดือนเกิด|เลขตามเดือนเกิด|เลขประจำเดือนเกิด)(.*)$/);
