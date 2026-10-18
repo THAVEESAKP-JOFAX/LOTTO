@@ -1,6 +1,6 @@
 // Webhook ของ LINE OA: ตอบคำสั่งในกลุ่ม และบอก Group ID เมื่อ bot ถูกเชิญเข้ากลุ่ม
 // ตั้ง Webhook URL ใน LINE Developers เป็น https://<เว็บ>/api/line/webhook
-import { verifySignature, reply } from '../lib/line.mjs';
+import { verifySignature, reply, markAsRead } from '../lib/line.mjs';
 import { loadDraws } from '../lib/data.mjs';
 import { picksMessage, resultMessage, checkText, HELP_TEXT } from '../../src/lib/line-messages.js';
 import { upcomingDraw, todayInThailand } from '../../src/lib/schedule.js';
@@ -55,6 +55,8 @@ export default async (req, context) => {
   if (!events.length) console.log('line-webhook verify/empty request');
   const work = (async () => {
     for (const ev of events) {
+      const readToken = ev.message?.markAsReadToken;
+      if (readToken) await markAsRead(readToken).catch((err) => console.error('line-webhook markAsRead', err.message));
       try {
         const messages = await handleEvent(ev, process.env.URL);
         // log เฉพาะชนิดเหตุการณ์และผลลัพธ์ ไว้ไล่ปัญหาใน Netlify → Logs → Functions

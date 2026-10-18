@@ -2,6 +2,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 const API = 'https://api.line.me/v2/bot/message';
+const CHAT_API = 'https://api.line.me/v2/bot/chat';
 
 export function verifySignature(rawBody, signature, secret) {
   if (!signature || !secret) return false;
@@ -10,9 +11,9 @@ export function verifySignature(rawBody, signature, secret) {
   return expected.length === got.length && timingSafeEqual(expected, got);
 }
 
-async function call(path, body, token = process.env.LINE_CHANNEL_ACCESS_TOKEN) {
+async function call(path, body, token = process.env.LINE_CHANNEL_ACCESS_TOKEN, base = API) {
   if (!token) throw new Error('ยังไม่ได้ตั้งค่า LINE_CHANNEL_ACCESS_TOKEN');
-  const res = await fetch(`${API}/${path}`, {
+  const res = await fetch(`${base}/${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(body),
@@ -21,6 +22,9 @@ async function call(path, body, token = process.env.LINE_CHANNEL_ACCESS_TOKEN) {
 }
 
 export const reply = (replyToken, messages) => call('reply', { replyToken, messages: [].concat(messages) });
+
+// ขึ้น "อ่านแล้ว" ให้ผู้ส่ง (ใช้ markAsReadToken ที่ LINE แนบมากับ message event)
+export const markAsRead = (markAsReadToken) => call('markAsRead', { markAsReadToken }, undefined, CHAT_API);
 
 // ส่งเข้าทุกกลุ่มใน LINE_GROUP_IDS (คั่นด้วยจุลภาค)
 export async function pushToGroups(messages, groups = groupIds()) {

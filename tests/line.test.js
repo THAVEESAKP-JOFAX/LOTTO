@@ -153,3 +153,11 @@ test('loadDraws: ยังไม่ถึงงวดถัดไปไม่ด
   await loadDraws('https://site.test', new Date('2026-10-16T10:00:00Z'), base);
   assert.ok(calls.some((c) => c.url.includes('githubusercontent')));
 });
+
+test('webhook: ทำเครื่องหมาย "อ่านแล้ว" เมื่อ LINE ส่ง markAsReadToken มา', async () => {
+  await webhook(signed({ events: [{ type: 'message', replyToken: 'r8', source: { type: 'user', userId: 'U1' }, message: { type: 'text', text: 'สวัสดี', markAsReadToken: 'tok-read' } }] }));
+  const read = calls.find((c) => c.url === 'https://api.line.me/v2/bot/chat/markAsRead');
+  assert.ok(read);
+  assert.deepEqual(read.body, { markAsReadToken: 'tok-read' });
+  assert.equal(read.auth, 'Bearer tok');
+});
