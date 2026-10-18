@@ -1,13 +1,13 @@
 // โหลดผลสลาก: ประวัติ 10 ปีจากไฟล์ของเว็บ + งวดใหม่ที่ออกหลัง deploy ล่าสุด (ไม่ต้อง deploy ใหม่)
 import { parseCsv, fromPrimaryRow, fromArchiveText, checkDraw } from '../../src/lib/parse.js';
-import { todayInThailand } from '../../src/lib/schedule.js';
+import { todayInThailand, nextDrawDate } from '../../src/lib/schedule.js';
 
 const PRIMARY = 'https://raw.githubusercontent.com/new4761/Thai_lottery_analysis/main/lottery_results.csv';
 const ARCHIVE = (d) => `https://raw.githubusercontent.com/vicha-w/thai-lotto-archive/master/lottonumbers/${d}.txt`;
 const mainOk = (d) => !checkDraw(d).some((i) => /^(first|last2|front3|last3)/.test(i));
 
-async function text(url) {
-  const res = await fetch(url);
+async function text(url, timeoutMs = 5000) {
+  const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
   return res.ok ? res.text() : null;
 }
 
@@ -16,6 +16,11 @@ export async function loadDraws(siteUrl = process.env.URL, now = new Date(), bas
   const base = baseDraws ?? JSON.parse(await text(`${siteUrl}/data/draws.json`)).draws;
   const known = new Set(base.map((d) => d.date));
   const last = base.at(-1).date;
+  const today = todayInThailand(now);
+  // ยังไม่ใกล้งวดถัดไป → ไม่มีผลใหม่แน่นอน ไม่ต้องดาวน์โหลดจาก GitHub (ตอบ LINE ได้เร็วขึ้น)
+  // เผื่อ 3 วันสำหรับงวดที่ออกก่อนกำหนด เช่น 30 ธ.ค. แทน 2 ม.ค.
+  const checkFrom = new Date(Date.parse(nextDrawDate(last) + 'T00:00:00Z') - 3 * 864e5).toISOString().slice(0, 10);
+  if (checkFrom > today) return base;
   const fresh = [];
   const csv = await text(PRIMARY).catch(() => null);
   if (csv) {
@@ -24,7 +29,6 @@ export async function loadDraws(siteUrl = process.env.URL, now = new Date(), bas
     }
   }
   // คลังสำรองมักอัปเดตเร็วกว่า: ลองดูงวดของวันนี้ (เวลาไทย)
-  const today = todayInThailand(now);
   if (today > last && !known.has(today)) {
     const t = await text(ARCHIVE(today)).catch(() => null);
     const d = t && fromArchiveText(today, t);

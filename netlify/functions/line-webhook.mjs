@@ -45,20 +45,26 @@ export async function handleEvent(ev, siteUrl) {
   return null; // ข้อความอื่นในกลุ่มไม่ต้องตอบ
 }
 
-export default async (req) => {
+export default async (req, context) => {
   if (req.method !== 'POST') return new Response('LINE webhook OK');
   const raw = await req.text();
   if (!verifySignature(raw, req.headers.get('x-line-signature'), process.env.LINE_CHANNEL_SECRET)) {
     return new Response('invalid signature', { status: 401 });
   }
   const { events = [] } = JSON.parse(raw);
-  for (const ev of events) {
-    try {
-      const messages = await handleEvent(ev, process.env.URL);
-      if (messages && ev.replyToken) await reply(ev.replyToken, messages);
-    } catch (err) {
-      console.error('line-webhook', err);
+  const work = (async () => {
+    for (const ev of events) {
+      try {
+        const messages = await handleEvent(ev, process.env.URL);
+        if (messages && ev.replyToken) await reply(ev.replyToken, messages);
+      } catch (err) {
+        console.error('line-webhook', err);
+      }
     }
-  }
+  })();
+  // LINE รอคำตอบ webhook ได้ราว 2 วินาที: ตอบ 200 ทันทีแล้วค่อยคำนวณ/ตอบกลับต่อในพื้นหลัง
+  // (reply token ใช้ได้ประมาณ 1 นาที)
+  if (context?.waitUntil) context.waitUntil(work);
+  else await work;
   return new Response('ok');
 };

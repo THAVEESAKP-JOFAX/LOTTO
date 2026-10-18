@@ -132,3 +132,24 @@ test('webhook: ถามตามวันที่ "งวด 01/11/26" แล�
   await webhook(signed({ events: [{ type: 'message', replyToken: 'r6', source: { type: 'group', groupId: 'Cabc' }, message: { type: 'text', text: 'งวด อะไรก็ไม่รู้' } }] }));
   assert.match(calls.find((c) => c.url.endsWith('/reply')).body.messages[0].text, /อ่านวันที่ไม่ออก/);
 });
+
+test('webhook: ตอบ 200 ทันทีและทำงานต่อใน waitUntil (LINE รอได้ราว 2 วินาที)', async () => {
+  let pending;
+  const res = await webhook(
+    signed({ events: [{ type: 'message', replyToken: 'r7', source: { type: 'group', groupId: 'Cabc' }, message: { type: 'text', text: 'เลขเด็ด' } }] }),
+    { waitUntil: (p) => { pending = p; } },
+  );
+  assert.equal(res.status, 200);
+  assert.ok(pending, 'ต้องส่งงานต่อให้ waitUntil');
+  await pending;
+  assert.ok(calls.some((c) => c.url.endsWith('/reply')));
+});
+
+test('loadDraws: ยังไม่ถึงงวดถัดไปไม่ดาวน์โหลดจาก GitHub', async () => {
+  const { loadDraws } = await import('../netlify/lib/data.mjs');
+  const base = draws.slice(0, -1); // งวดล่าสุดในข้อมูลนี้คือ 1 ต.ค. 2569
+  await loadDraws('https://site.test', new Date('2026-10-05T03:00:00Z'), base);
+  assert.ok(!calls.some((c) => c.url.includes('githubusercontent')));
+  await loadDraws('https://site.test', new Date('2026-10-16T10:00:00Z'), base);
+  assert.ok(calls.some((c) => c.url.includes('githubusercontent')));
+});
