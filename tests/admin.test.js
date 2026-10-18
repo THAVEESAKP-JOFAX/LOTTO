@@ -109,6 +109,8 @@ test('เลขมงคลตามวันเกิด (ทักษา): ก
   assert.deepEqual(kala, { sun: 6, mon: 1, tue: 2, wed: 3, thu: 7, fri: 8, sat: 4, rahu: 5 });
   assert.equal(parseDay('วันพุธกลางคืน').key, 'rahu');
   assert.equal(parseDay('พุธ').key, 'wed');
+  assert.equal(parseDay('ัวนศุกร์').key, 'fri'); // พิมพ์ผิดข้างหน้า
+  assert.equal(parseDay('วันเกิดวันเสาร์').key, 'sat');
   const l = luckyNumbers(DAYS[0]);
   assert.equal(l.two.length, 6);
   assert.equal(l.three.length, 6);

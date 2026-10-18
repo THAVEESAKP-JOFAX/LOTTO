@@ -16,11 +16,12 @@ const ROLES = ['บริวาร', 'อายุ', 'เดช', 'ศรี', '
 const JS_WEEKDAY = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
 // หาวันจากข้อความ เช่น "วันจันทร์", "พุธกลางคืน" (เช็คชื่อยาวก่อน กัน "พุธ" ไปจับ "พุธกลางคืน")
+// หาชื่อวันที่ตำแหน่งใดก็ได้ เผื่อพิมพ์ผิดข้างหน้า เช่น "ัวนศุกร์"
 export function parseDay(text) {
   const t = String(text).replace(/\s+|วัน|เกิด/g, '');
   if (!t) return null;
   const all = DAYS.flatMap((d) => d.aliases.map((a) => [a, d])).sort((a, b) => b[0].length - a[0].length);
-  return all.find(([a]) => t.startsWith(a))?.[1] ?? null;
+  return all.find(([a]) => t.includes(a))?.[1] ?? null;
 }
 
 // วันในสัปดาห์ของวันที่ ISO (เวลาไทย)
