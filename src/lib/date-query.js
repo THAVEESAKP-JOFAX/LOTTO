@@ -71,7 +71,7 @@ export function drawQuery(draws, date, { today, siteUrl, settings } = {}) {
     if (isDrawDay(date)) {
       const upcoming = upcomingDraw(latest, today);
       const msgs = [];
-      if (date === today) msgs.push(note(`งวด ${thDate(date)} ออกวันนี้ ผลยังไม่ออก — นี่คือเลขของ bot`));
+      if (date === today) msgs.push(note(`งวด ${thDate(date)} ออกวันนี้ ผลยังไม่ออก — นี่คือเลขแนะนำจาก LOTTOTHAI`));
       else if (date > upcoming) msgs.push(note(`งวด ${thDate(date)} ยังไม่ใช่งวดถัดไป (งวดถัดไปคือ ${thDate(upcoming)}) bot คำนวณจากข้อมูลถึงงวดล่าสุด`));
       msgs.push(picksMessage(date, draws, siteUrl, settings));
       return msgs;

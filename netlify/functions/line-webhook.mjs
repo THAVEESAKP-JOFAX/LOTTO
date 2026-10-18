@@ -25,7 +25,7 @@ const NEXT_DRAW_COMMANDS = [
 export async function handleEvent(ev, siteUrl, settings = null) {
   const groupId = ev.source?.groupId;
   if (ev.type === 'join' && groupId) {
-    return [{ type: 'text', text: `สวัสดีครับ 🧠 LOTTO Bot เข้ากลุ่มแล้ว\nGroup ID: ${groupId}\nนำค่านี้ไปใส่ใน LINE_GROUP_IDS บน Netlify เพื่อรับแจ้งเตือนอัตโนมัติ\n\n${HELP_TEXT}` }];
+    return [{ type: 'text', text: `สวัสดีครับ 🧠 LOTTO-THAI เข้ากลุ่มแล้ว\nGroup ID: ${groupId}\nนำค่านี้ไปใส่ใน LINE_GROUP_IDS บน Netlify เพื่อรับแจ้งเตือนอัตโนมัติ\n\n${HELP_TEXT}` }];
   }
   if (ev.type !== 'message' || ev.message?.type !== 'text') return null;
   const cmd = ev.message.text.trim().toLowerCase();

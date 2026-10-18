@@ -194,3 +194,13 @@ test('webhook: เลข2ตัว / เลข3ตัว / เลขลอยบ
   assert.match(t2[0].altText, /รางวัลที่ 1/);
   assert.match((await ask('ตรวจรางวัล'))[0].text, /ตามด้วยเลข 6 หลัก/);
 });
+
+test('การ์ด LINE ใช้หัว LOTTO-THAI และข้อความผลใช้ชื่อ LOTTOTHAI', async () => {
+  const { resultMessage } = await import('../src/lib/line-messages.js');
+  const m = resultMessage(draws.at(-1), draws, 'https://x');
+  const texts = JSON.stringify(m.contents);
+  assert.match(texts, /"LOTTO-THAI"/);
+  assert.match(texts, /เลขจาก LOTTOTHAI (ไม่)?ถูกรางวัล/);
+  assert.match(texts, /เลขแนะนำ 2 ตัว \(สุ่มจากการ Run Bot\)/);
+  assert.doesNotMatch(texts, /LOTTO ANALYTICS|เลขของ Bot/);
+});
