@@ -1,6 +1,6 @@
 // สร้างข้อความ LINE (Flex Message พื้นฟ้า + ข้อความสำรอง) จากผลสลากและเลขของ bot
 import { GAMES } from './analysis.js';
-import { BOTS, pick } from './bots.js';
+import { pick } from './bots.js';
 import { mulberry32, hashSeed } from './rng.js';
 import { checkTicket, payout, PRIZES } from './prizes.js';
 import { analyzeNumber } from './checker.js';
@@ -19,7 +19,6 @@ export const ALERT_PICKS = (({ last2, last3, front3, first }) => ({ last2, last3
 
 const thDate = (iso) => new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
   .format(new Date(iso + 'T00:00:00Z'));
-const botName = (id) => { const b = BOTS.find((x) => x.id === id); return `${b.icon} ${b.name}`; };
 
 // เลขของ bot สำหรับงวด drawDate — ใช้ประวัติก่อนงวดนั้นเท่านั้น และ seed จากวันที่
 // จึงคำนวณซ้ำได้เหมือนเดิมเสมอ (ใช้ตรวจผลหลังออกรางวัลได้)
@@ -58,7 +57,7 @@ const flex = (altText, contents) => ({ type: 'flex', altText: altText.slice(0, 4
 
 // ข้อความเลขเด็ดก่อนออกรางวัล
 export function picksMessage(drawDate, draws, siteUrl, settings = DEFAULT_SETTINGS) {
-  const { picks, botId } = botPicksFor(drawDate, draws, settings);
+  const { picks } = botPicksFor(drawDate, draws, settings);
   const body = [
     row('เลขท้าย 2 ตัว', picks.last2.join('  '), { color: C.hi, size: 'md' }),
     row('เลขท้าย 3 ตัว', picks.last3.join('  ')),
@@ -67,7 +66,7 @@ export function picksMessage(drawDate, draws, siteUrl, settings = DEFAULT_SETTIN
   ];
   const alt = `🧠 เลขแนะนำจาก LOTTO-THAI งวด ${thDate(drawDate)}\n2 ตัว: ${picks.last2.join(' ')}\n3 ตัวท้าย: ${picks.last3.join(' ')}\n` +
     `3 ตัวหน้า: ${picks.front3.join(' ')}\n6 หลัก: ${picks.first.join(' ')}`;
-  return flex(alt, bubble(`งวด ${thDate(drawDate)} · ${botName(botId)}`, body));
+  return flex(alt, bubble(`งวด ${thDate(drawDate)}`, body));
 }
 
 // คำสั่ง "เลข2ตัว"
