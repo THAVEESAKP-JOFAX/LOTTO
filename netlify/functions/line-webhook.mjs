@@ -45,7 +45,7 @@ export async function handleEvent(ev, siteUrl, settings = null) {
   const probKind = PROB_COMMAND_KIND[compact.replace(/^เลข/, '')];
   if (probKind) return [probabilityMessage(probKind, await loadDraws(siteUrl))];
   // ทำนายฝัน: "ทำนายฝัน งู", "ฝันเห็นช้าง", "ฝันว่าฟันหลุด" (ไม่จับ "ฝันดี" ที่ใช้บอกราตรีสวัสดิ์)
-  if (/^(?:ทำนายฝัน|เลขฝัน|ตีเลขฝัน|ฝันเห็น|ฝันว่า|ฝันถึง)/.test(compact)) return [dreamMessage(compact)];
+  if (/^(?:เลข)?(?:ทำนายฝัน|ทำนานฝัน|ทํานายฝัน|ตีเลขฝัน|เลขฝัน|ฝันเห็น|ฝันว่า|ฝันถึง)/.test(compact)) return [dreamMessage(compact)];
   // ตีเลขจากข่าวดัง
   if (/^(ข่าวดัง|เลขดัง|เลขข่าว|เลขข่าวดัง|หวยข่าว|ข่าวเด่น|เลขเด็ดข่าว)$/.test(compact)) {
     const items = await loadNews().catch((err) => { console.error('line-webhook news', err.message); return null; });

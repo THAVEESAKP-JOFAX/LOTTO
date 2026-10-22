@@ -249,6 +249,9 @@ test('ทำนายฝัน: คำทำนาย + เลขที่คำ
     assert.deepEqual(r.flatMap((m) => emptyTexts(m)), [], `${c} มีข้อความว่าง`);
   }
   assert.match((await ask('ฝันเห็นงู'))[0].altText, /เนื้อคู่[\s\S]*เลขเด่น/);
+  assert.match((await ask('ฝันเห็นหมอ'))[0].altText, /หมอ: /);
+  assert.match((await ask('เลขทำนายฝัน งู'))[0].altText, /งู: /);
+  assert.match((await ask('เลขทำนานฝัน'))[0].text, /ทำนายฝัน/);
   assert.equal(await ask('ฝันดี'), null);
   assert.equal(await ask('ฝันดีนะทุกคน'), null);
 });
