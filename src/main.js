@@ -30,6 +30,7 @@ Promise.all([load(), publicSettings()]).then(([{ draws, backtest }, show]) => {
   const reveal = (key) => {
     $(`#${key}`).hidden = false;
     document.querySelector(`nav [data-opt="${key}"]`).hidden = false;
+    document.querySelector('nav [data-opt-sep]').hidden = false; // เส้นคั่นกลุ่มเครื่องมือ
   };
   if (show.bot) { reveal('bot'); renderBots(draws); runBot(draws); }
   if (show.check) { reveal('check'); renderChecker(draws); }

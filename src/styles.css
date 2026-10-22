@@ -805,3 +805,64 @@ html, body { overflow-x: clip; }
 .st-row.error .st-state { background: linear-gradient(145deg, #f87171, #d63a3a); box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 6px 16px -6px rgba(214, 58, 58, .75); animation: pulse-red 1.8s infinite; }
 .st-dot, .st-badge { display: none; }
 @media (max-width: 1100px) and (min-width: 901px) { .line-actions { grid-template-columns: 1fr 1fr; } }
+.nav-sep { width: 1px; height: 18px; margin: 0 6px; align-self: center; background: var(--line-strong); flex: none; }
+.topbar nav a { padding: 7px 10px; font-size: 13.5px; }
+@media (max-width: 1440px) { .topbar-cta { display: none; } }
+/* จอกลาง: ซ่อนกลุ่มเครื่องมือในเมนูบน (ส่วนนั้นยังอยู่ในหน้า) เพื่อให้เมนูไม่ล้น */
+@media (max-width: 1320px) { .topbar nav [data-opt], .topbar nav [data-opt-sep] { display: none !important; } }
+
+/* =====================================================================
+   สีประจำแต่ละหัวข้อ (เมนู ↔ หัวข้อส่วน ↔ แถบข้าง Admin)
+   ===================================================================== */
+.c-ticket, #ticket { --c: #e09a00; --c2: #f6c445; }
+.c-history, #history { --c: #ea580c; --c2: #fb923c; }
+.c-overview, #overview { --c: #2563eb; --c2: #60a5fa; }
+.c-places, #places { --c: #4f46e5; --c2: #818cf8; }
+.c-huay, #huay { --c: #0891b2; --c2: #22d3ee; }
+.c-lottery, #lottery { --c: #059669; --c2: #34d399; }
+.c-bot, #bot { --c: #7c3aed; --c2: #a78bfa; }
+.c-check, #check { --c: #db2777; --c2: #f472b6; }
+.c-backtest, #backtest { --c: #dc2626; --c2: #f87171; }
+.c-dash, #dash { --c: #2563eb; --c2: #60a5fa; }
+.c-settings, #settings { --c: #e09a00; --c2: #f6c445; }
+.c-line, #line { --c: #06a54a; --c2: #34d399; }
+
+/* เมนูบน: จุดสี + ไฮไลต์ตามสีหัวข้อ */
+.topbar nav a[class^="c-"] { display: inline-flex; align-items: center; gap: 7px; }
+.topbar nav a[class^="c-"]::before { content: ''; width: 7px; height: 7px; border-radius: 50%; flex: none; background: linear-gradient(135deg, var(--c2), var(--c)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 14%, transparent); }
+.topbar nav a[class^="c-"]:hover { background: color-mix(in srgb, var(--c) 9%, transparent); color: color-mix(in srgb, var(--c) 80%, #111); }
+.topbar nav a[class^="c-"].active { background: color-mix(in srgb, var(--c) 14%, #fff); color: color-mix(in srgb, var(--c) 78%, #111); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 28%, transparent); }
+
+/* หัวข้อส่วน: เส้นและตัวอักษร eyebrow เป็นสีของหัวข้อ */
+.section[id] .section-head .eyebrow { color: var(--c, var(--accent)); font-weight: 600; }
+.section[id] .section-head .eyebrow::before { width: 40px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, var(--c2, var(--accent-hi)), var(--c, var(--accent))); }
+.section[id] .card::after { background: linear-gradient(90deg, var(--c2, #4f8ef7), var(--c, #9b5cf6)); }
+
+/* แถบข้าง Admin: ไอคอนสีประจำเมนู */
+.side-nav a[class^="c-"] svg { color: var(--c2); opacity: 1; }
+.side-nav a[class^="c-"]:hover { background: color-mix(in srgb, var(--c) 16%, transparent); }
+.side-nav a[class^="c-"].active { background: linear-gradient(90deg, color-mix(in srgb, var(--c) 42%, transparent), color-mix(in srgb, var(--c) 10%, transparent)); box-shadow: inset 3px 0 0 var(--c2); color: #fff; }
+.side-nav a[class^="c-"].active svg { color: #fff; }
+.admin-header#dash .eyebrow { color: var(--c); }
+.admin-header#dash .eyebrow::before { background: linear-gradient(90deg, var(--c2), var(--c)); height: 3px; width: 40px; border-radius: 3px; }
+@media (max-width: 900px) { .side-nav a[class^="c-"].active { box-shadow: inset 0 -3px 0 var(--c2); } }
+
+/* ปุ่มส่ง LINE: แต่ละปุ่มมีสีของตัวเอง */
+.action-tile.c-picks { --c: #2563eb; --c2: #60a5fa; }
+.action-tile.c-result { --c: #d97706; --c2: #fbbf24; }
+.action-tile.c-test { --c: #059669; --c2: #34d399; }
+.action-tile.c-menu { --c: #7c3aed; --c2: #a78bfa; }
+.action-tile[class*="c-"] svg { background: linear-gradient(135deg, var(--c2), var(--c)); box-shadow: 0 8px 18px -10px var(--c); }
+.action-tile[class*="c-"]:hover { border-color: color-mix(in srgb, var(--c) 45%, transparent); box-shadow: 0 18px 36px -22px var(--c); }
+.action-tile[class*="c-"] b { color: color-mix(in srgb, var(--c) 55%, #1f2333); }
+
+/* การ์ดตั้งค่าใน Admin: ไอคอนหัวการ์ดสีต่างกัน */
+.set-card:nth-child(1) .set-head > svg { color: #2563eb; background: rgba(37, 99, 235, .1); }
+.set-card:nth-child(2) .set-head > svg { color: #7c3aed; background: rgba(124, 58, 237, .1); }
+.set-card:nth-child(3) .set-head > svg { color: #059669; background: rgba(5, 150, 105, .1); }
+.section[id] .set-card:nth-child(1)::after { background: linear-gradient(90deg, #60a5fa, #2563eb); }
+.section[id] .set-card:nth-child(2)::after { background: linear-gradient(90deg, #a78bfa, #7c3aed); }
+.section[id] .set-card:nth-child(3)::after { background: linear-gradient(90deg, #34d399, #059669); }
+.topbar nav { gap: 2px; }
+.topbar nav a[class^="c-"] { gap: 6px; padding: 7px 9px; }
+.footer-inner { padding-bottom: 48px; }

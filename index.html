@@ -18,15 +18,17 @@
   <header class="topbar">
     <a class="brand" href="#top"><img class="brand-mark" src="/favicon.svg" alt="" width="34" height="34" /><span>LOTTO <em>Analytics</em></span></a>
     <nav>
-      <a href="#ticket">ตรวจรางวัล</a>
-      <a href="#overview">ภาพรวม</a>
-      <a href="#places">สถิติตามหลัก</a>
-      <a href="#huay">หวย 2–3 ตัว</a>
-      <a href="#lottery">ล็อตเตอรี่ 6 หลัก</a>
-      <a href="#bot" data-opt="bot" hidden>Bot</a>
-      <a href="#check" data-opt="check" hidden>ทดสอบเลข</a>
-      <a href="#backtest" data-opt="backtest" hidden>Backtest</a>
-      <a href="#history">ผลย้อนหลัง</a>
+      <a class="c-ticket" href="#ticket">ตรวจรางวัล</a>
+      <a class="c-history" href="#history">ผลย้อนหลัง</a>
+      <span class="nav-sep" aria-hidden="true"></span>
+      <a class="c-overview" href="#overview">ภาพรวม</a>
+      <a class="c-places" href="#places">สถิติตามหลัก</a>
+      <a class="c-huay" href="#huay">เลข 2–3 ตัว</a>
+      <a class="c-lottery" href="#lottery">รางวัลที่ 1</a>
+      <span class="nav-sep" data-opt-sep hidden aria-hidden="true"></span>
+      <a class="c-bot" href="#bot" data-opt="bot" hidden>สูตรวิเคราะห์</a>
+      <a class="c-check" href="#check" data-opt="check" hidden>วิเคราะห์ตัวเลข</a>
+      <a class="c-backtest" href="#backtest" data-opt="backtest" hidden>ผลทดสอบสูตร</a>
     </nav>
     <a class="btn btn-primary btn-sm topbar-cta" href="#ticket">ตรวจรางวัล</a>
   </header>
@@ -75,6 +77,20 @@
       </div>
     </section>
 
+    <section id="history" class="section">
+      <div class="section-head split">
+        <div>
+          <p class="eyebrow">ผลย้อนหลัง</p>
+          <h2>ผลสลากกินแบ่งรัฐบาลทุกงวด</h2>
+        </div>
+        <label class="search">ค้นหาตัวเลข<input id="hist-q" inputmode="numeric" /></label>
+      </div>
+      <div class="card">
+        <div class="table-wrap"><table class="table" id="hist-table"></table></div>
+        <button class="btn btn-ghost" id="hist-more">แสดงเพิ่มเติม</button>
+      </div>
+    </section>
+
     <section id="overview" class="section">
       <div class="section-head">
         <p class="eyebrow">ภาพรวม</p>
@@ -94,7 +110,7 @@
 
     <section id="huay" class="section">
       <div class="section-head">
-        <p class="eyebrow">หวย</p>
+        <p class="eyebrow">เลข 2–3 ตัว</p>
         <h2>เลขท้าย 2 ตัว · 3 ตัวหน้า · 3 ตัวท้าย</h2>
         <div class="seg" id="huay-game" role="tablist"></div>
       </div>
@@ -119,7 +135,7 @@
 
     <section id="lottery" class="section">
       <div class="section-head">
-        <p class="eyebrow">ล็อตเตอรี่</p>
+        <p class="eyebrow">รางวัลที่ 1</p>
         <h2>รางวัลที่ 1 — หลักต่อตำแหน่ง</h2>
       </div>
       <div class="grid-2">
@@ -138,7 +154,7 @@
 
     <section id="bot" class="section optional" hidden>
       <div class="section-head">
-        <p class="eyebrow">ระบบวิเคราะห์ตัวเลข</p>
+        <p class="eyebrow">สูตรวิเคราะห์</p>
         <h2>ประมวลผลตัวเลขด้วยสูตรวิเคราะห์</h2>
         <p class="sub">เลือกสูตรวิเคราะห์ ประเภทรางวัล และจำนวนตัวเลข · โหมดวิเคราะห์จะเลือกตัวเลขที่มีคะแนนสูงสุด ส่วนโหมดสุ่มจะสุ่มโดยถ่วงน้ำหนักตามคะแนน</p>
       </div>
@@ -160,7 +176,7 @@
 
     <section id="check" class="section optional" hidden>
       <div class="section-head">
-        <p class="eyebrow">ทดสอบชุดตัวเลข</p>
+        <p class="eyebrow">วิเคราะห์ตัวเลข</p>
         <h2>วิเคราะห์ตัวเลขที่ต้องการ</h2>
         <p class="sub">ตัวเลข 2 หลักตรวจกับเลขท้าย 2 ตัว · 3 หลักตรวจกับเลขหน้าและเลขท้าย 3 ตัว · 6 หลักตรวจทุกรางวัล พร้อมแสดงความน่าจะเป็น สถิติย้อนหลัง 10 ปี คะแนนจากแต่ละสูตร และผลลัพธ์หากซื้อทุกงวด</p>
       </div>
@@ -175,7 +191,7 @@
 
     <section id="backtest" class="section optional" hidden>
       <div class="section-head">
-        <p class="eyebrow">ผลทดสอบย้อนหลัง</p>
+        <p class="eyebrow">ผลทดสอบสูตร</p>
         <h2>ผลการทดสอบสูตรย้อนหลัง 9 ปี</h2>
         <p class="sub" id="bt-sub"></p>
       </div>
@@ -201,19 +217,6 @@
       </div>
     </section>
 
-    <section id="history" class="section">
-      <div class="section-head split">
-        <div>
-          <p class="eyebrow">ผลย้อนหลัง</p>
-          <h2>ผลสลากกินแบ่งรัฐบาลทุกงวด</h2>
-        </div>
-        <label class="search">ค้นหาตัวเลข<input id="hist-q" inputmode="numeric" /></label>
-      </div>
-      <div class="card">
-        <div class="table-wrap"><table class="table" id="hist-table"></table></div>
-        <button class="btn btn-ghost" id="hist-more">แสดงเพิ่มเติม</button>
-      </div>
-    </section>
 
   </main>
 
@@ -226,9 +229,9 @@
       <nav class="footer-links" aria-label="ลิงก์ท้ายเว็บ">
         <b>เมนู</b>
         <a href="#ticket">ตรวจรางวัล</a>
+        <a href="#history">ผลย้อนหลัง</a>
         <a href="#overview">ภาพรวม</a>
         <a href="#places">สถิติตามหลัก</a>
-        <a href="#history">ผลย้อนหลัง</a>
       </nav>
       <div class="footer-links">
         <b>ข้อมูล</b>
@@ -236,7 +239,6 @@
         <a href="/admin">ผู้ดูแลระบบ</a>
       </div>
     </div>
-    <p class="footer-copy">© <span id="footer-year"></span> LOTTO Analytics</p>
   </footer>
 
   <script type="module" src="/src/main.js"></script>
