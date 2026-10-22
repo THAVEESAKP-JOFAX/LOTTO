@@ -82,6 +82,24 @@ function renderDash() {
 }
 
 // ---------- สถานะการทำงานของ Bot ----------
+const SVG = (d, w = 1.9) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+// ไอคอนประจำแต่ละหัวข้อ
+const ROW_ICON = {
+  line: '<path d="M21 11.5a8.4 8.4 0 0 1-9 8 9.4 9.4 0 0 1-3.6-.7L3 20.5l1.5-4.3A7.6 7.6 0 0 1 3 11.5a8.4 8.4 0 0 1 9-8 8.4 8.4 0 0 1 9 8z"/>',
+  groups: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.8"/><path d="M16 14.2a5.5 5.5 0 0 1 5.5 5.8"/>',
+  picks: '<path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/>',
+  result: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',
+  reply: '<path d="M4 5h16v11H8l-4 4z"/><path d="M8 9.5h8M8 12.5h5"/>',
+  data: '<ellipse cx="12" cy="5.5" rx="7.5" ry="2.8"/><path d="M4.5 5.5v6c0 1.6 3.4 2.8 7.5 2.8s7.5-1.2 7.5-2.8v-6M4.5 11.5v6c0 1.6 3.4 2.8 7.5 2.8s7.5-1.2 7.5-2.8v-6"/>',
+  manual: '<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11.5V4a1.5 1.5 0 0 1 3 0v7.5M14 11.5V5.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7h-.5a6 6 0 0 1-5.2-3l-2-3.5a1.5 1.5 0 0 1 2.6-1.5L8 15"/>',
+};
+// ไอคอนสถานะด้านขวา
+const STATE_ICON = {
+  ok: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  warn: '<path d="M12 7v6M12 17h.01"/>',
+  error: '<path d="M7 7l10 10M17 7 7 17"/>',
+  off: '<path d="M12 3v8"/><path d="M6.3 7.2a8 8 0 1 0 11.4 0"/>',
+};
 const fmtTime = (iso) => new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }).format(new Date(iso));
 const LEVEL_TEXT = { ok: 'ปกติ', warn: 'ควรตรวจสอบ', error: 'ขัดข้อง', off: 'ปิดใช้งาน' };
 function lastRun(a, empty = 'ยังไม่มีประวัติการทำงาน') {
@@ -110,18 +128,18 @@ function statusRows() {
   // ผลงวดควรมาหลังวันออกรางวัลไม่เกิน 1 วัน
   const stale = Date.parse(today) - Date.parse(nextDrawAfter(last.date)) > 864e5;
   return [
-    { title: 'การเชื่อมต่อ LINE', level: lineReady ? 'ok' : 'error', value: lineReady ? 'พร้อมใช้งาน' : 'ยังไม่พร้อม',
+    { key: 'line', title: 'การเชื่อมต่อ LINE', level: lineReady ? 'ok' : 'error', value: lineReady ? 'พร้อมใช้งาน' : 'ยังไม่พร้อม',
       detail: lineReady ? 'ตั้งค่า Channel access token และ Channel secret เรียบร้อยแล้ว' : `ยังไม่ได้กำหนด ${missing} ใน Netlify` },
-    { title: 'กลุ่มที่รับการแจ้งเตือน', level: line.groups ? 'ok' : 'warn', value: line.groups ? `${line.groups} กลุ่ม` : 'ยังไม่ได้กำหนด',
+    { key: 'groups', title: 'กลุ่มที่รับการแจ้งเตือน', level: line.groups ? 'ok' : 'warn', value: line.groups ? `${line.groups} กลุ่ม` : 'ยังไม่ได้กำหนด',
       detail: line.groups ? 'กำหนดไว้ใน LINE_GROUP_IDS' : 'เพิ่ม Group ID ใน LINE_GROUP_IDS เพื่อรับการแจ้งเตือนอัตโนมัติ' },
-    { title: 'ส่งชุดตัวเลขแนะนำอัตโนมัติ', ...auto(settings.autoPicks, activity.picks, `รอบถัดไป ${nextText} เวลา 09:00 น.`) },
-    { title: 'ประกาศผลรางวัลอัตโนมัติ', ...auto(settings.autoResult, activity.result, `รอบถัดไป ${nextText} ช่วง 15:30–18:30 น.`) },
+    { key: 'picks', title: 'ส่งชุดตัวเลขแนะนำอัตโนมัติ', ...auto(settings.autoPicks, activity.picks, `รอบถัดไป ${nextText} เวลา 09:00 น.`) },
+    { key: 'result', title: 'ประกาศผลรางวัลอัตโนมัติ', ...auto(settings.autoResult, activity.result, `รอบถัดไป ${nextText} ช่วง 15:30–18:30 น.`) },
     settings.commands
-      ? { title: 'ตอบกลับคำสั่งในกลุ่ม', level: !lineReady || reply.failed ? 'error' : 'ok', value: reply.failed ? 'ตอบกลับไม่สำเร็จ' : 'เปิดใช้งาน', detail: reply.text }
-      : { title: 'ตอบกลับคำสั่งในกลุ่ม', level: 'off', value: 'ปิดใช้งาน', detail: 'bot จะไม่ตอบคำสั่งในกลุ่ม (ยกเว้น groupid)' },
-    { title: 'ข้อมูลผลรางวัล', level: stale ? 'warn' : 'ok', value: stale ? 'รออัปเดต' : 'เป็นปัจจุบัน',
+      ? { key: 'reply', title: 'ตอบกลับคำสั่งในกลุ่ม', level: !lineReady || reply.failed ? 'error' : 'ok', value: reply.failed ? 'ตอบกลับไม่สำเร็จ' : 'เปิดใช้งาน', detail: reply.text }
+      : { key: 'reply', title: 'ตอบกลับคำสั่งในกลุ่ม', level: 'off', value: 'ปิดใช้งาน', detail: 'bot จะไม่ตอบคำสั่งในกลุ่ม (ยกเว้น groupid)' },
+    { key: 'data', title: 'ข้อมูลผลรางวัล', level: stale ? 'warn' : 'ok', value: stale ? 'รออัปเดต' : 'เป็นปัจจุบัน',
       detail: `งวดล่าสุด ${thDate(last.date)} · ${draws.length} งวด${stale ? ' · ยังไม่พบผลงวดถัดไปจากแหล่งข้อมูล' : ''}` },
-    { title: 'การส่งข้อความด้วยตนเอง', level: manual.failed ? 'warn' : 'ok', value: manual.failed ? 'ครั้งล่าสุดไม่สำเร็จ' : 'พร้อมใช้งาน', detail: manual.text },
+    { key: 'manual', title: 'การส่งข้อความด้วยตนเอง', level: manual.failed ? 'warn' : 'ok', value: manual.failed ? 'ครั้งล่าสุดไม่สำเร็จ' : 'พร้อมใช้งาน', detail: manual.text },
   ];
 }
 function renderStatus() {
@@ -141,9 +159,9 @@ function renderStatus() {
   $('#status-checked').textContent = `ตรวจสอบล่าสุด ${fmtTime(dash.status.now)}`;
   $('#status-list').innerHTML = rows.map((r) => `
     <li class="st-row ${r.level}">
-      <span class="st-dot" aria-hidden="true"></span>
-      <div class="st-main"><b>${r.title}</b><small>${r.detail}</small></div>
-      <span class="st-badge">${r.value}</span>
+      <span class="st-ico">${SVG(ROW_ICON[r.key])}</span>
+      <div class="st-main"><b>${r.title}</b><small><span class="st-value">${r.value}</span> · ${r.detail}</small></div>
+      <span class="st-state" title="${LEVEL_TEXT[r.level]} · ${r.value}" aria-label="${LEVEL_TEXT[r.level]}: ${r.value}">${SVG(STATE_ICON[r.level], 2.6)}</span>
     </li>`).join('');
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const unknown = dash.status.activity.unknown?.list ?? [];
