@@ -773,3 +773,5 @@ html, body { overflow-x: clip; }
 .st-row.warn .st-badge { background: rgba(237, 161, 0, .14); color: #8a5c00; }
 .st-row.error .st-badge { background: rgba(220, 61, 61, .1); color: #b42323; }
 @media (max-width: 900px) { .status-list { grid-template-columns: 1fr; } }
+.k-top { min-width: 0; }
+.kpi .k-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }

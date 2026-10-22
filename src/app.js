@@ -129,8 +129,8 @@ export function renderKpis(draws) {
     { k: 'parity', label: 'เลขท้าย 2 ตัว · คี่ : คู่', value: `${s.odd} : ${s.even}`, extra: splitBar(s.odd, s.even, 'คี่', 'คู่'), foot: 'ค่าคาดหมาย 50 : 50' },
     { k: 'range', label: 'เลขท้าย 2 ตัว · สูง : ต่ำ', value: `${s.high} : ${s.low}`, extra: splitBar(s.high, s.low, 'สูง', 'ต่ำ'), foot: 'เลขสูง = 50–99' },
     { k: 'doubles', label: 'เลขเบิ้ล (00, 11, …)', value: `${s.doubles} <small>งวด</small>`, extra: vsBar(s.doubles, expDoubles), foot: `ค่าคาดหมายประมาณ ${expDoubles.toFixed(0)} งวด` },
-    { k: 'repeat', label: 'เลขท้าย 2 ตัวซ้ำงวดติดกัน', value: `${s.consecutiveRepeats} <small>ครั้ง</small>`, extra: vsBar(s.consecutiveRepeats, expRepeat), foot: `ค่าคาดหมายประมาณ ${expRepeat.toFixed(1)} ครั้ง` },
-    { k: 'random', label: 'การทดสอบความสุ่ม (Chi-square)', value: `p = ${s.chiLast2.p.toFixed(2)}`, badge: s.chiLast2.p > 0.05 ? ['ok', 'กระจายตัวตามธรรมชาติ'] : ['warn', 'พบความเบี่ยงเบน'], foot: 'ทดสอบกับเลขท้าย 2 ตัวทั้งหมด' },
+    { k: 'repeat', label: '2 ตัวท้ายซ้ำงวดติดกัน', value: `${s.consecutiveRepeats} <small>ครั้ง</small>`, extra: vsBar(s.consecutiveRepeats, expRepeat), foot: `ค่าคาดหมายประมาณ ${expRepeat.toFixed(1)} ครั้ง` },
+    { k: 'random', label: 'ทดสอบความสุ่ม (Chi²)', value: `p = ${s.chiLast2.p.toFixed(2)}`, badge: s.chiLast2.p > 0.05 ? ['ok', 'กระจายตัวตามธรรมชาติ'] : ['warn', 'พบความเบี่ยงเบน'], foot: 'Chi-square · เลขท้าย 2 ตัวทั้งหมด' },
     { k: 'payout', label: 'อัตราการจ่ายคืนตามทฤษฎี', value: pct(theoreticalReturn(), 0), extra: `<div class="k-vs payout"><i style="width:${theoreticalReturn() * 100}%"></i></div>`, foot: `ของราคาสลากใบละ ${TICKET_PRICE} บาท` },
   ];
   $('#kpis').innerHTML = tiles.map((t) => `
