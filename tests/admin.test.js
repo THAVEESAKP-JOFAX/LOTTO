@@ -252,3 +252,24 @@ test('ทำนายฝัน: คำทำนาย + เลขที่คำ
   assert.equal(await ask('ฝันดี'), null);
   assert.equal(await ask('ฝันดีนะทุกคน'), null);
 });
+
+test('คำสั่งความน่าจะเป็น: 3ตัวหน้า 3ตัวท้าย 3ตัวบน 2ตัวบน 2ตัวล่าง 4ตัวบน 5ตัวบน', async () => {
+  const { probabilityStats } = await import('../src/lib/probability.js');
+  const expectOneIn = { front3: 500, last3: 500, top3: 1000, top2: 100, bottom2: 100, top4: 10000, top5: 100000 };
+  for (const [k, n] of Object.entries(expectOneIn)) assert.equal(probabilityStats(draws, k).oneIn, n, k);
+  const top2 = probabilityStats(draws, 'top2');
+  assert.equal(top2.latest[0], draws.at(-1).first.slice(4));
+  assert.equal(top2.composite.length, 2);
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ draws }));
+  try {
+    const { handleEvent } = await import('../netlify/functions/line-webhook.mjs');
+    const ask = async (text) => handleEvent({ type: 'message', source: { type: 'group', groupId: 'C' }, message: { type: 'text', text } }, 'https://x', normalizeSettings({}));
+    for (const c of ['3ตัวหน้า', '3ตัวท้าย', '3ตัวบน', '2ตัวบน', '2ตัวล่าง', '4ตัวบน', '5ตัวบน', 'เลข 3 ตัวบน']) {
+      const r = await ask(c);
+      assert.match(r[0].altText, /ความน่าจะเป็น/, c);
+      assert.deepEqual(r.flatMap((m) => emptyTexts(m)), [], `${c} มีข้อความว่าง`);
+    }
+    assert.match((await ask('5ตัวบน'))[0].altText, /1 ใน 100,000/);
+  } finally { globalThis.fetch = realFetch; }
+});

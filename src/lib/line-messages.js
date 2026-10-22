@@ -10,6 +10,7 @@ import { DAYS, luckyNumbers } from './lucky-day.js';
 import { MONTHS, monthLucky, yearLucky } from './lucky-birth.js';
 import { newsNumbers } from './news-numbers.js';
 import { interpretDream, POPULAR_DREAMS } from './dream.js';
+import { probabilityStats, PROB_KINDS } from './probability.js';
 import { DEFAULT_SETTINGS } from './settings.js';
 
 const C = {
@@ -261,6 +262,34 @@ export function dreamMessage(input) {
   return { ...flex(alt, bubble(`ฝัน: ${r.subject}`, body, 'ทำนายฝัน')), quickReply: dreamQuickReply(r.found[0]?.title) };
 }
 
+// คำสั่ง "3ตัวบน", "2ตัวล่าง", "5ตัวบน" ฯลฯ — ความน่าจะเป็น + สถิติจริงย้อนหลัง
+const PROB_COMMANDS = { front3: '3ตัวหน้า', last3: '3ตัวท้าย', top3: '3ตัวบน', top2: '2ตัวบน', bottom2: '2ตัวล่าง', top4: '4ตัวบน', top5: '5ตัวบน' };
+export function probabilityMessage(kind, draws) {
+  const r = probabilityStats(draws, kind);
+  const pctText = (x) => `${(x * 100).toLocaleString('th-TH', { maximumFractionDigits: 3 })}%`;
+  const body = [
+    row('โอกาสถูกต่อตัวเลข', `1 ใน ${r.oneIn.toLocaleString('th-TH')}`, { color: C.hi, size: 'lg' }),
+    row('คิดเป็น', pctText(r.chance)),
+    row('ตัวเลขที่เป็นไปได้', `${r.space.toLocaleString('th-TH')} ตัวเลข`),
+    row(`เคยออกใน ${r.draws} งวด`, `${r.seen.toLocaleString('th-TH')} ตัวเลข`),
+    row('ออกล่าสุด', r.latest.join('  ')),
+    { type: 'separator', margin: 'lg', color: C.line },
+    row('เลขเด่นแต่ละหลัก', r.composite.split('').join(' '), { color: C.hi, size: 'xl' }),
+    text(r.places.map((x) => `${x.place} ${x.digit} (${Math.round(x.rate * 100)}%)`).join(' · '), { size: 'xxs', color: C.muted, align: 'end' }),
+    r.frequent.length
+      ? row('ออกบ่อยที่สุด', r.frequent.map(([n, c]) => `${n}(${c})`).join(' '), { size: 'xs' })
+      : row('ออกบ่อยที่สุด', 'ไม่มีตัวเลขที่ออกซ้ำ', { size: 'xs' }),
+    text(`ค่าคาดหมายต่อตัวเลข ${r.expected < 0.01 ? 'น้อยกว่า 0.01' : r.expected.toLocaleString('th-TH', { maximumFractionDigits: 2 })} ครั้งใน ${r.draws} งวด · ทุกตัวเลขมีโอกาสเท่ากันทุกงวด สถิติใช้ประกอบการพิจารณาเท่านั้น`, { size: 'xxs', color: C.muted, margin: 'md' }),
+  ];
+  const alt = `ความน่าจะเป็น ${r.label}\nโอกาสถูก 1 ใน ${r.oneIn.toLocaleString('th-TH')} (${pctText(r.chance)})\nเลขเด่นแต่ละหลัก ${r.composite}\nออกล่าสุด ${r.latest.join(' ')}`;
+  return {
+    ...flex(alt, bubble(`${r.label} · ${r.note}`, body, 'ความน่าจะเป็น')),
+    quickReply: { items: [...Object.entries(PROB_COMMANDS).filter(([k]) => k !== kind).map(([, t]) => t), 'ลอยบน']
+      .map((t) => ({ type: 'action', action: { type: 'message', label: t, text: t } })) },
+  };
+}
+export const PROB_COMMAND_KIND = Object.fromEntries(Object.entries(PROB_COMMANDS).map(([k, t]) => [t, k]));
+
 export const BIRTH_HELP = {
   month: { type: 'text', text: 'พิมพ์ "เลขเดือนเกิด" ตามด้วยเดือน เช่น เลขเดือนเกิด ต.ค. หรือ เลขเดือนเกิด 25/10 (ใส่วันที่จะได้ราศีที่แม่นขึ้น)',
     quickReply: { items: MONTHS.map((name) => ({ type: 'action', action: { type: 'message', label: name, text: `เลขเดือนเกิด ${name}` } })).slice(0, 13) } },
@@ -326,4 +355,4 @@ export function checkText(draws, raw) {
 
 export const HELP_TEXT =
   'คำสั่ง LOTTO-THAI\n• "เลขเด็ด" — เลขแนะนำจาก LOTTO-THAI สำหรับงวดถัดไป\n• "เลข2ตัว" — เลขท้าย 2 ตัว\n• "เลข3ตัว" — เลขท้าย 3 ตัว + เลขหน้า 3 ตัว\n' +
-  '• "เลขลอย" (หรือ "เลขลอยบน" / "เลขลอยล่าง") — เลขวิ่งหลักเดียว\n• "เลขประจำวัน" หรือ "เลขประจำวัน จันทร์" — เลขมงคลตามวันเกิด\n• "เลขเดือนเกิด ต.ค." / "เลขปีเกิด 2530" — เลขมงคลตามเดือน/ปีเกิด\n• "ทำนายฝัน งู" หรือ "ฝันเห็นงู" — คำทำนาย + เลขจากความฝัน\n• "ข่าวดัง" หรือ "เลขดัง" — ตีเลขจากข่าวเด่นล่าสุด\n• "ผลหวย" — ผลงวดล่าสุด\n• "ตรวจรางวัล 011781" หรือ "ตรวจรางวัล 48" — ตรวจว่าถูกรางวัลอะไร (เลือกงวดได้)\n• "เช็ค 48" — ทดสอบเลขของคุณ\n• "งวด 01/11/26" — เลขหรือผลของงวดนั้น\n• "groupid" — แสดง ID ของกลุ่มนี้';
+  '• "เลขลอย" (หรือ "เลขลอยบน" / "เลขลอยล่าง") — เลขวิ่งหลักเดียว\n• "3ตัวบน" "3ตัวหน้า" "3ตัวท้าย" "2ตัวบน" "2ตัวล่าง" "4ตัวบน" "5ตัวบน" — ความน่าจะเป็นและสถิติ\n• "เลขประจำวัน" หรือ "เลขประจำวัน จันทร์" — เลขมงคลตามวันเกิด\n• "เลขเดือนเกิด ต.ค." / "เลขปีเกิด 2530" — เลขมงคลตามเดือน/ปีเกิด\n• "ทำนายฝัน งู" หรือ "ฝันเห็นงู" — คำทำนาย + เลขจากความฝัน\n• "ข่าวดัง" หรือ "เลขดัง" — ตีเลขจากข่าวเด่นล่าสุด\n• "ผลหวย" — ผลงวดล่าสุด\n• "ตรวจรางวัล 011781" หรือ "ตรวจรางวัล 48" — ตรวจว่าถูกรางวัลอะไร (เลือกงวดได้)\n• "เช็ค 48" — ทดสอบเลขของคุณ\n• "งวด 01/11/26" — เลขหรือผลของงวดนั้น\n• "groupid" — แสดง ID ของกลุ่มนี้';
