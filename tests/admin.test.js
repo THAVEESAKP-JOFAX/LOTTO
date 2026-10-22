@@ -232,3 +232,23 @@ test('ตรวจรางวัลใน LINE: เลข 2–3 ตัว แ�
     assert.equal(await ask('โทร 0812345678'), null);
   } finally { globalThis.fetch = realFetch; }
 });
+
+test('ทำนายฝัน: คำทำนาย + เลขที่คำนวณจากตัวอักษร และไม่ตอบ "ฝันดี"', async () => {
+  const { interpretDream, dreamNumbers, dreamSubject } = await import('../src/lib/dream.js');
+  assert.equal(dreamSubject('ฝันเห็น งูรัด'), 'งูรัด');
+  assert.equal(dreamSubject('ทำนายฝัน ฝันว่าฟันหลุด'), 'ฟันหลุด');
+  assert.deepEqual(dreamNumbers('งู').values, [2, 2]); // ง = 2, ู = 2
+  assert.deepEqual(interpretDream('ฝันเห็นงู'), interpretDream('ทำนายฝัน งู')); // ฝันเดียวกันได้เลขเดิม
+  assert.deepEqual(interpretDream('ฝันว่าไฟไหม้บ้าน').found.map((d) => d.title), ['ไฟไหม้', 'บ้าน']);
+  assert.deepEqual(interpretDream('ทำนายฝัน รถไฟ').found, []); // "ไฟ" ในรถไฟ ไม่ใช่ไฟไหม้
+  const { handleEvent } = await import('../netlify/functions/line-webhook.mjs');
+  const ask = async (text) => handleEvent({ type: 'message', source: { type: 'group', groupId: 'C' }, message: { type: 'text', text } }, 'https://x', normalizeSettings({}));
+  for (const c of ['ทำนายฝัน งู', 'ฝันเห็นช้างกับงู', 'ฝันว่าฟันหลุด', 'ทำนายฝัน รถไฟ', 'ทำนายฝัน']) {
+    const r = await ask(c);
+    assert.ok(r?.length, c);
+    assert.deepEqual(r.flatMap((m) => emptyTexts(m)), [], `${c} มีข้อความว่าง`);
+  }
+  assert.match((await ask('ฝันเห็นงู'))[0].altText, /เนื้อคู่[\s\S]*เลขเด่น/);
+  assert.equal(await ask('ฝันดี'), null);
+  assert.equal(await ask('ฝันดีนะทุกคน'), null);
+});

@@ -9,6 +9,7 @@ import { checkTickets } from './ticket-check.js';
 import { DAYS, luckyNumbers } from './lucky-day.js';
 import { MONTHS, monthLucky, yearLucky } from './lucky-birth.js';
 import { newsNumbers } from './news-numbers.js';
+import { interpretDream, POPULAR_DREAMS } from './dream.js';
 import { DEFAULT_SETTINGS } from './settings.js';
 
 const C = {
@@ -225,6 +226,41 @@ export function newsMessage(items, when = '') {
   return flex(alt, bubble(when ? `ข่าวเด่นล่าสุด · ${when}` : 'ข่าวเด่นล่าสุด', body, 'เลขเด็ดจากข่าวดัง'));
 }
 
+// คำสั่ง "ทำนายฝัน งู" / "ฝันเห็นงู" — คำทำนาย + เลขที่ bot คำนวณจากตัวอักษรของความฝัน
+const dreamQuickReply = (exclude = '') => ({
+  items: POPULAR_DREAMS.filter((d) => d !== exclude).slice(0, 12)
+    .map((d) => ({ type: 'action', action: { type: 'message', label: d, text: `ทำนายฝัน ${d}` } })),
+});
+export const DREAM_HELP = {
+  type: 'text',
+  text: 'พิมพ์ "ทำนายฝัน" ตามด้วยสิ่งที่ฝัน เช่น ทำนายฝัน งู · ฝันเห็นช้าง · ฝันว่าฟันหลุด\nbot จะบอกคำทำนายและคำนวณเลขจากความฝันให้ หรือกดเลือกจากปุ่มด้านล่าง',
+  quickReply: dreamQuickReply(),
+};
+
+export function dreamMessage(input) {
+  const r = interpretDream(input);
+  if (!r) return DREAM_HELP;
+  const meanings = r.found.length
+    ? r.found.map((d) => ({
+      type: 'box', layout: 'vertical', margin: 'md',
+      contents: [
+        text(`ฝันเห็น${d.title}`, { weight: 'bold', color: C.hi }),
+        text(d.meaning, { size: 'sm', margin: 'xs' }),
+      ],
+    }))
+    : [text('ยังไม่มีคำทำนายของความฝันนี้ในตำรา แต่ bot คำนวณเลขจากความฝันให้แล้ว', { size: 'sm', margin: 'md', color: C.muted })];
+  const body = [
+    ...meanings,
+    { type: 'separator', margin: 'lg', color: C.line },
+    row('เลขเด่น', r.main.join('  '), { color: C.hi, size: 'xl' }),
+    row('เลข 2 ตัว', r.two.join('  '), { color: C.hi }),
+    row('เลข 3 ตัว', r.three.join('  ')),
+    text(`คำนวณจากค่าตัวอักษร (เลขศาสตร์) ของ "${r.subject}" ผลรวม ${r.total} · ตามความเชื่อ เพื่อความบันเทิง`, { size: 'xxs', color: C.muted, margin: 'md' }),
+  ];
+  const alt = `ทำนายฝัน: ${r.subject}\n${r.found.map((d) => `${d.title}: ${d.meaning}`).join('\n') || 'คำนวณเลขจากความฝัน'}\nเลขเด่น ${r.main.join(' ')}\n2 ตัว: ${r.two.join(' ')}\n3 ตัว: ${r.three.join(' ')}`;
+  return { ...flex(alt, bubble(`ฝัน: ${r.subject}`, body, 'ทำนายฝัน')), quickReply: dreamQuickReply(r.found[0]?.title) };
+}
+
 export const BIRTH_HELP = {
   month: { type: 'text', text: 'พิมพ์ "เลขเดือนเกิด" ตามด้วยเดือน เช่น เลขเดือนเกิด ต.ค. หรือ เลขเดือนเกิด 25/10 (ใส่วันที่จะได้ราศีที่แม่นขึ้น)',
     quickReply: { items: MONTHS.map((name) => ({ type: 'action', action: { type: 'message', label: name, text: `เลขเดือนเกิด ${name}` } })).slice(0, 13) } },
@@ -290,4 +326,4 @@ export function checkText(draws, raw) {
 
 export const HELP_TEXT =
   'คำสั่ง LOTTO-THAI\n• "เลขเด็ด" — เลขแนะนำจาก LOTTO-THAI สำหรับงวดถัดไป\n• "เลข2ตัว" — เลขท้าย 2 ตัว\n• "เลข3ตัว" — เลขท้าย 3 ตัว + เลขหน้า 3 ตัว\n' +
-  '• "เลขลอย" (หรือ "เลขลอยบน" / "เลขลอยล่าง") — เลขวิ่งหลักเดียว\n• "เลขประจำวัน" หรือ "เลขประจำวัน จันทร์" — เลขมงคลตามวันเกิด\n• "เลขเดือนเกิด ต.ค." / "เลขปีเกิด 2530" — เลขมงคลตามเดือน/ปีเกิด\n• "ข่าวดัง" หรือ "เลขดัง" — ตีเลขจากข่าวเด่นล่าสุด\n• "ผลหวย" — ผลงวดล่าสุด\n• "ตรวจรางวัล 011781" หรือ "ตรวจรางวัล 48" — ตรวจว่าถูกรางวัลอะไร (เลือกงวดได้)\n• "เช็ค 48" — ทดสอบเลขของคุณ\n• "งวด 01/11/26" — เลขหรือผลของงวดนั้น\n• "groupid" — แสดง ID ของกลุ่มนี้';
+  '• "เลขลอย" (หรือ "เลขลอยบน" / "เลขลอยล่าง") — เลขวิ่งหลักเดียว\n• "เลขประจำวัน" หรือ "เลขประจำวัน จันทร์" — เลขมงคลตามวันเกิด\n• "เลขเดือนเกิด ต.ค." / "เลขปีเกิด 2530" — เลขมงคลตามเดือน/ปีเกิด\n• "ทำนายฝัน งู" หรือ "ฝันเห็นงู" — คำทำนาย + เลขจากความฝัน\n• "ข่าวดัง" หรือ "เลขดัง" — ตีเลขจากข่าวเด่นล่าสุด\n• "ผลหวย" — ผลงวดล่าสุด\n• "ตรวจรางวัล 011781" หรือ "ตรวจรางวัล 48" — ตรวจว่าถูกรางวัลอะไร (เลือกงวดได้)\n• "เช็ค 48" — ทดสอบเลขของคุณ\n• "งวด 01/11/26" — เลขหรือผลของงวดนั้น\n• "groupid" — แสดง ID ของกลุ่มนี้';

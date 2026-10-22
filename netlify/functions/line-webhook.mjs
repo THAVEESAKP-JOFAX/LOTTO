@@ -2,7 +2,7 @@
 // ตั้ง Webhook URL ใน LINE Developers เป็น https://<เว็บ>/api/line/webhook
 import { verifySignature, reply, markAsRead } from '../lib/line.mjs';
 import { loadDraws } from '../lib/data.mjs';
-import { picksMessage, resultMessage, checkText, twoDigitMessage, threeDigitMessage, floatMessage, ticketCheckMessage, drawQuickReply, luckyDayMessage, birthMonthMessage, birthYearMessage, newsMessage, BIRTH_HELP, TICKET_HELP, HELP_TEXT } from '../../src/lib/line-messages.js';
+import { picksMessage, resultMessage, checkText, twoDigitMessage, threeDigitMessage, floatMessage, ticketCheckMessage, drawQuickReply, luckyDayMessage, birthMonthMessage, birthYearMessage, newsMessage, dreamMessage, BIRTH_HELP, TICKET_HELP, HELP_TEXT } from '../../src/lib/line-messages.js';
 import { getSettings } from '../lib/settings.mjs';
 import { loadNews } from '../lib/news.mjs';
 import { parseNumbers } from '../../src/lib/ticket-check.js';
@@ -41,6 +41,8 @@ export async function handleEvent(ev, siteUrl, settings = null) {
     const draws = await loadDraws(siteUrl);
     return nextCmd[1](upcomingDraw(draws.at(-1).date, todayInThailand()), draws, settings, siteUrl);
   }
+  // ทำนายฝัน: "ทำนายฝัน งู", "ฝันเห็นช้าง", "ฝันว่าฟันหลุด" (ไม่จับ "ฝันดี" ที่ใช้บอกราตรีสวัสดิ์)
+  if (/^(?:ทำนายฝัน|เลขฝัน|ตีเลขฝัน|ฝันเห็น|ฝันว่า|ฝันถึง)/.test(compact)) return [dreamMessage(compact)];
   // ตีเลขจากข่าวดัง
   if (/^(ข่าวดัง|เลขดัง|เลขข่าว|เลขข่าวดัง|หวยข่าว|ข่าวเด่น|เลขเด็ดข่าว)$/.test(compact)) {
     const items = await loadNews().catch((err) => { console.error('line-webhook news', err.message); return null; });
