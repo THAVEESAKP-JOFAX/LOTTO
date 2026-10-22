@@ -2,7 +2,7 @@
 // ตั้ง Webhook URL ใน LINE Developers เป็น https://<เว็บ>/api/line/webhook
 import { verifySignature, reply, markAsRead } from '../lib/line.mjs';
 import { loadDraws } from '../lib/data.mjs';
-import { picksMessage, resultMessage, checkText, twoDigitMessage, threeDigitMessage, floatMessage, ticketCheckMessage, drawQuickReply, luckyDayMessage, birthMonthMessage, birthYearMessage, newsMessage, dreamMessage, probabilityMessage, PROB_COMMAND_KIND, BIRTH_HELP, TICKET_HELP, HELP_TEXT } from '../../src/lib/line-messages.js';
+import { picksMessage, resultMessage, checkText, twoDigitMessage, threeDigitMessage, floatMessage, ticketCheckMessage, drawQuickReply, luckyDayMessage, birthMonthMessage, birthYearMessage, newsMessage, dreamMessage, probabilityMessage, PROB_COMMAND_KIND, helpMessage, BIRTH_HELP, TICKET_HELP, HELP_TEXT } from '../../src/lib/line-messages.js';
 import { getSettings, recordActivity, getActivity } from '../lib/settings.mjs';
 import { loadNews } from '../lib/news.mjs';
 import { parseNumbers } from '../../src/lib/ticket-check.js';
@@ -215,7 +215,7 @@ async function handleSingle(ev, siteUrl, settings = null) {
     const draws = await loadDraws(siteUrl);
     return drawQuery(draws, date, { today, siteUrl, settings });
   }
-  if (/^(help|ช่วยเหลือ|คำสั่ง)$/.test(cmd)) return [{ type: 'text', text: HELP_TEXT }];
+  if (/^(help|ช่วยเหลือ|คำสั่ง|เมนู|คำสั่งทั้งหมด)$/.test(cmd)) return [helpMessage()];
   return null; // ข้อความอื่นในกลุ่มไม่ต้องตอบ
 }
 

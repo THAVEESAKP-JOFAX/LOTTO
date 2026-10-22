@@ -378,3 +378,15 @@ test('พิมพ์คำสั่งผิด: bot แนะนำคำส�
   for (const chat of ['สวัสดีครับ', 'วันนี้กินอะไรดี', 'ฝันดีนะ', '@เพื่อน ไปไหน']) assert.equal(await ask(chat), null, chat);
   assert.equal(await handleEvent({ type: 'message', source: { type: 'group', groupId: 'C' }, message: { type: 'text', text: '3ตัวบอน' } }, 'https://x', normalizeSettings({ commands: false })), null);
 });
+
+test('Rich Menu 3×2 ครอบเต็มรูป และ "คำสั่ง" ในกลุ่มมีปุ่มกดแทนการพิมพ์', async () => {
+  const { richMenu } = await import('../scripts/rich-menu.mjs');
+  assert.equal(richMenu.areas.length, 6);
+  const area = richMenu.areas.reduce((s, a) => s + a.bounds.width * a.bounds.height, 0);
+  assert.equal(area, richMenu.size.width * richMenu.size.height);
+  for (const a of richMenu.areas) assert.ok(a.action.label.length <= 20);
+  const { handleEvent } = await import('../netlify/functions/line-webhook.mjs');
+  const r = await handleEvent({ type: 'message', source: { type: 'group', groupId: 'C' }, message: { type: 'text', text: 'คำสั่ง' } }, 'https://x', normalizeSettings({}));
+  assert.ok(r[0].quickReply.items.length >= 10 && r[0].quickReply.items.length <= 13);
+  assert.ok(r[0].quickReply.items.some((i) => i.action.text === '3ตัวบน'));
+});
