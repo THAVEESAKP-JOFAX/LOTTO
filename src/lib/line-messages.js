@@ -268,7 +268,7 @@ export function dreamMessage(input) {
         text(d.meaning, { size: 'sm', margin: 'xs' }),
       ],
     }))
-    : [text('ยังไม่มีคำทำนายของความฝันนี้ในตำรา แต่ bot คำนวณเลขจากความฝันให้แล้ว', { size: 'sm', margin: 'md', color: C.muted })];
+    : [text(`ฝันเห็น${r.subject}`, { weight: 'bold', color: C.hi, margin: 'md' }), text('bot ตีเลขจากความฝันนี้ให้แล้ว ดูชุดตัวเลขด้านล่าง', { size: 'sm', margin: 'xs' })];
   const body = [
     ...meanings,
     { type: 'separator', margin: 'lg', color: C.line },

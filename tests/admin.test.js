@@ -336,3 +336,19 @@ test('หลายคำสั่งในข้อความเดียว (
     assert.equal(await ask('สวัสดี\nวันนี้กินอะไรดี'), null);
   } finally { globalThis.fetch = realFetch; }
 });
+
+test('ฝันเห็นสัตว์อะไรก็ได้ → มีคำทำนายตามกลุ่มสัตว์และตีเป็นตัวเลขเสมอ', async () => {
+  const { interpretDream } = await import('../src/lib/dream.js');
+  const { dreamMessage } = await import('../src/lib/line-messages.js');
+  const title = (t) => interpretDream(t).found.map((d) => d.title).join(',');
+  assert.equal(title('ฝันเห็นผีเสื้อ'), 'ผีเสื้อ'); // ไม่ใช่ "ผี"
+  assert.equal(title('ฝันเห็นปลาวาฬ'), 'ปลาวาฬ'); // ไม่ใช่ "ปลา"
+  assert.equal(title('ฝันเห็นหมาป่า'), 'หมาป่า');
+  assert.match(interpretDream('ฝันเห็นยีราฟ').found[0].meaning, /สัตว์ใหญ่/);
+  for (const t of ['ฝันเห็นยีราฟ', 'ฝันเห็นตุ๊กแก', 'ฝันเห็นโลมา', 'ทำนายฝัน รถไฟ']) {
+    const r = interpretDream(t);
+    assert.ok(r.main.length && r.two.length && r.three.length, t);
+    assert.deepEqual(emptyTexts(dreamMessage(t)), [], t);
+  }
+  assert.doesNotMatch(JSON.stringify(dreamMessage('ทำนายฝัน รถไฟ').contents), /ยังไม่มีคำทำนาย/);
+});
