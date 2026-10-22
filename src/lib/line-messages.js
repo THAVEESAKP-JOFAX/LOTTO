@@ -58,16 +58,17 @@ const bubble = (subtitle, body, title) => ({
 const flex = (altText, contents) => ({ type: 'flex', altText: altText.slice(0, 400), contents });
 // แบนเนอร์สีทองเมื่อถูกรางวัล (ไอคอนถ้วยรางวัลโหลดจากเว็บ จึงต้องมี siteUrl)
 const GOLD = { top: '#fff4cc', bottom: '#ffc43d', ink: '#4d3400', sub: '#7a5600' };
-const winBanner = (title, sub, siteUrl) => ({
+const winBanner = (kicker, title, sub, siteUrl) => ({
   type: 'box', layout: 'horizontal', margin: 'lg', paddingAll: '12px', cornerRadius: '14px', spacing: 'md',
   background: { type: 'linearGradient', angle: '135deg', startColor: GOLD.top, endColor: GOLD.bottom },
   contents: [
-    ...(siteUrl ? [{ type: 'image', url: `${siteUrl.replace(/\/$/, '')}/line/trophy.png`, size: '52px', aspectRatio: '1:1', flex: 0 }] : []),
+    ...(siteUrl ? [{ type: 'image', url: `${siteUrl.replace(/\/$/, '')}/line/trophy.png`, size: '60px', aspectRatio: '1:1', flex: 0 }] : []),
     {
       type: 'box', layout: 'vertical', justifyContent: 'center',
       contents: [
-        text(title, { color: GOLD.ink, weight: 'bold', size: 'md' }),
-        text(sub, { color: GOLD.sub, size: 'xs', weight: 'bold' }),
+        text(kicker, { color: GOLD.sub, size: 'xxs', weight: 'bold' }),
+        text(title, { color: GOLD.ink, weight: 'bold', size: 'lg' }),
+        text(sub, { color: GOLD.sub, size: 'xxs' }),
       ],
     },
   ],
@@ -148,7 +149,7 @@ export function ticketCheckMessage(draws, tickets, date = null, siteUrl = '') {
   }));
   const wins = r.results.filter((x) => x.amount).length;
   const body = [
-    ...(r.total ? [winBanner('ขอแสดงความยินดี ถูกรางวัล', `${wins} ใบ · รวม ฿${r.total.toLocaleString('th-TH')}`, siteUrl)] : []),
+    ...(r.total ? [winBanner('ขอแสดงความยินดี · ถูกรางวัล', `฿${r.total.toLocaleString('th-TH')}`, `ถูกรางวัล ${wins} จาก ${r.results.length} ใบ`, siteUrl)] : []),
     ...lines,
     { type: 'separator', margin: 'lg', color: C.line },
     text(r.total ? `รวมเงินรางวัล ฿${r.total.toLocaleString('th-TH')}` : `ตรวจ ${r.results.length} ใบ ไม่ถูกรางวัล`,
@@ -342,7 +343,7 @@ export function resultMessage(d, draws, siteUrl, settings = DEFAULT_SETTINGS) {
     row('เลขท้าย 2 ตัว', d.last2, { color: C.hi, size: 'lg' }),
     { type: 'separator', margin: 'lg', color: C.line },
     any
-      ? winBanner('เลขจาก LOTTO-THAI ถูกรางวัล', `รวมเงินรางวัล ฿${money.toLocaleString('th-TH')}`, siteUrl)
+      ? winBanner('เลขจาก LOTTO-THAI', 'ถูกรางวัล', `รวมเงินรางวัล ฿${money.toLocaleString('th-TH')}`, siteUrl)
       : text('❌ เลขจาก LOTTO-THAI ไม่ถูกรางวัล', { margin: 'lg', weight: 'bold', color: C.muted }),
     text(`เลขที่แนะนำจาก LOTTO-THAI คือเลข ${picks.last2.join(' ')}${hit.last2.length ? ` (ถูก ${hit.last2.join(', ')})` : ''}`, { size: 'xs', color: C.muted }),
   ];

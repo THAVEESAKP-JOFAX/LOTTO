@@ -299,7 +299,7 @@ test('LINE ถูกรางวัล: แบนเนอร์ทองพร�
   const win = ticketCheckMessage(draws, [last.first, '999999'], null, 'https://site.test/');
   const json = JSON.stringify(win.contents);
   assert.match(json, /https:\/\/site\.test\/line\/trophy\.png/);
-  assert.match(json, /ขอแสดงความยินดี ถูกรางวัล/);
+  assert.match(json, /ขอแสดงความยินดี · ถูกรางวัล/);
   assert.deepEqual(emptyTexts(win), []);
   const lose = JSON.stringify(ticketCheckMessage(draws, ['999999'].filter((n) => n !== last.first), null, 'https://site.test').contents);
   assert.doesNotMatch(lose, /trophy/);

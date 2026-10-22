@@ -149,7 +149,9 @@ function renderStatus() {
 }
 async function loadStatus() {
   try {
-    dash.status = await api('/api/admin/status');
+    const data = await api('/api/admin/status');
+    if (!data?.line || !data?.settings) throw new Error('ข้อมูลสถานะไม่ครบ');
+    dash.status = { activity: {}, ...data };
     renderStatus();
   } catch (err) {
     $('#status-checked').textContent = `✗ ตรวจสอบสถานะไม่สำเร็จ: ${err.message}`;
