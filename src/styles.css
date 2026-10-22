@@ -290,16 +290,6 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .controls .grow { flex: 1 1 280px; }
 .controls .grow textarea { width: 100%; }
 #ticket-draw { min-width: 200px; }
-.ticket-draw-label { display: inline-grid; gap: 6px; color: var(--muted); font-size: 13px; margin-bottom: 14px; }
-.ticket-inputs { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
-.ticket-input {
-  width: 100%; text-align: center; background: var(--surface-2); color: var(--text);
-  border: 1px solid var(--line-strong); border-radius: 10px; padding: 12px;
-  font: 600 22px var(--display); letter-spacing: .12em; font-variant-numeric: lining-nums tabular-nums;
-}
-.ticket-input::placeholder { font: 400 15px var(--sans); letter-spacing: 0; color: var(--muted); }
-.ticket-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-.ticket-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 .btn-sm { padding: 7px 14px; font-size: 13px; }
 
 /* ---------- ตรวจรางวัล ---------- */
@@ -349,14 +339,18 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 @media (max-width: 900px) { .admin-page .topbar nav { display: flex; } }
 
 /* ---------- Backtest: โดนัทจำนวนครั้งที่ถูก ---------- */
-.donut-wrap { display: grid; grid-template-columns: minmax(240px, 340px) 1fr; gap: 24px; align-items: center; margin: 8px 0 4px; }
-.donut-box { height: 300px; }
-.donut-legend { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px 20px; }
-.donut-legend li { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--text); padding: 6px 0; border-bottom: 1px solid var(--line); }
-.donut-legend .dot { margin: 0; }
-.donut-legend b { margin-left: auto; font: 600 20px var(--display); font-variant-numeric: lining-nums tabular-nums; }
-.donut-legend small { color: var(--muted); font-size: 12px; }
-@media (max-width: 720px) { .donut-wrap { grid-template-columns: 1fr; } .donut-box { height: 260px; } }
+.donut-wrap { display: grid; grid-template-columns: minmax(260px, 360px) 1fr; gap: 24px; align-items: center; margin: 8px 0 4px; }
+.donut-box { height: 330px; }
+.donut-legend { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 28px; }
+.donut-legend li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.lg-name { display: flex; align-items: center; gap: 8px; font-size: 14.5px; color: var(--text); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lg-name .dot { margin: 0; flex: none; }
+.lg-val { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+.lg-val b { font: 600 20px var(--display); color: var(--text); font-variant-numeric: lining-nums tabular-nums; }
+.lg-val small { margin-left: 4px; padding: 1px 7px; border-radius: 999px; background: var(--surface-2); font-size: 11.5px; }
+.lg-bar { grid-column: 1 / -1; height: 4px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.lg-bar i { display: block; height: 100%; border-radius: 4px; opacity: .85; }
+@media (max-width: 720px) { .donut-wrap { grid-template-columns: 1fr; } .donut-box { height: 280px; } .donut-legend { grid-template-columns: 1fr; } }
 
 /* ---------- สถิติตามหลัก ---------- */
 .places { display: grid; gap: 20px; }
@@ -377,4 +371,82 @@ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   .place-table tbody th { padding: 8px 4px 8px 0; font-size: 12.5px; width: 38px; }
   .place-table thead th:first-child { width: 38px; font-size: 11px; }
   .place-table td { font-size: 14px; border-left-width: 1px; }
+}
+
+/* ---------- ตรวจรางวัล: ฟอร์มซ้าย + ผลงวดขวา ---------- */
+.ticket-card { padding: 28px; }
+.ticket-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, 1fr); gap: 28px; align-items: stretch; }
+.ticket-form { display: flex; flex-direction: column; gap: 16px; }
+.ticket-form-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.ticket-form-head h3 { margin: 0; font-size: 20px; }
+.ticket-form-head .note { margin: 2px 0 0; }
+.ticket-draw-label { display: grid; gap: 6px; color: var(--muted); font-size: 12.5px; }
+.ticket-draw-label select { min-width: 210px; }
+.ticket-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ticket-slot {
+  position: relative; display: flex; align-items: center; background: var(--surface-2);
+  border: 1px solid var(--line-strong); border-radius: 12px; transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.ticket-slot::after { /* รอยปรุแบบสลาก */
+  content: ''; position: absolute; left: 44px; top: 8px; bottom: 8px; border-left: 1.5px dashed var(--line-strong);
+}
+.ticket-slot:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91, 108, 240, .15); background: #fff; }
+.ticket-slot.done { border-color: rgba(91, 108, 240, .45); background: #fff; }
+.slot-no { width: 44px; flex: none; text-align: center; font: 600 15px var(--serif); color: var(--faint); }
+.ticket-slot.done .slot-no { color: var(--accent); }
+.ticket-input {
+  flex: 1; min-width: 0; width: 100%; border: 0; background: transparent; padding: 13px 14px; text-align: center; color: var(--text);
+  font: 600 24px var(--display); letter-spacing: .16em; font-variant-numeric: lining-nums tabular-nums; outline: none;
+}
+.ticket-input::placeholder { font: 400 14px var(--sans); letter-spacing: 0; color: var(--faint); }
+.ticket-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: auto; }
+.ticket-count { margin-left: auto; color: var(--muted); font-size: 13px; }
+
+.draw-panel {
+  position: relative; overflow: hidden; border-radius: 16px; padding: 22px; color: #fff;
+  background: var(--accent-grad); box-shadow: 0 14px 34px -14px rgba(91, 92, 232, .55);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.draw-panel::before {
+  content: ''; position: absolute; right: -60px; top: -60px; width: 200px; height: 200px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,.22), transparent 70%);
+}
+.dp-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; opacity: .9; }
+.dp-top b { font: 600 17px var(--serif); opacity: 1; }
+.dp-label { font-size: 12.5px; opacity: .85; margin-top: 6px; }
+.dp-first { font: 700 clamp(44px, 5vw, 58px)/1 var(--display); letter-spacing: .1em; font-variant-numeric: lining-nums tabular-nums; text-shadow: 0 2px 12px rgba(0,0,0,.12); }
+.dp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+.dp-grid div, .dp-near { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22); border-radius: 12px; padding: 10px 12px; }
+.dp-grid span, .dp-near span { display: block; font-size: 11.5px; opacity: .85; }
+.dp-grid b { font: 600 19px var(--serif); letter-spacing: .05em; white-space: nowrap; font-variant-numeric: lining-nums tabular-nums; }
+.dp-near b { font: 600 16px var(--serif); letter-spacing: .05em; font-variant-numeric: lining-nums tabular-nums; }
+
+.ticket-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.ticket-summary div { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.ticket-summary span { display: block; color: var(--muted); font-size: 12px; }
+.ticket-summary b { font: 600 19px var(--serif); font-variant-numeric: lining-nums tabular-nums; }
+.ticket-summary.win div:last-child { background: rgba(22, 163, 106, .1); border-color: rgba(22, 163, 106, .35); }
+.ticket-summary.win div:last-child b { color: var(--good); }
+.ticket-out { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 24px; }
+
+@media (max-width: 900px) {
+  .ticket-grid { grid-template-columns: 1fr; }
+  .draw-panel { order: -1; }
+}
+@media (max-width: 560px) {
+  .ticket-card { padding: 18px; }
+  .ticket-inputs { grid-template-columns: minmax(0, 1fr); }
+  .ticket-summary { grid-template-columns: 1fr 1fr; }
+  .ticket-draw-label, .ticket-draw-label select { width: 100%; }
+  .ticket-count { width: 100%; margin-left: 0; }
+}
+.ticket-grid > * { min-width: 0; }
+@media (max-width: 560px) {
+  .draw-panel { padding: 18px; }
+  .dp-first { font-size: 42px; }
+  .dp-grid { gap: 6px; }
+  .dp-grid div { padding: 8px 9px; }
+  .dp-grid span { font-size: 10.5px; white-space: nowrap; }
+  .dp-grid b { font-size: 15px; letter-spacing: .02em; }
+  .ticket-summary b { font-size: 16px; }
 }

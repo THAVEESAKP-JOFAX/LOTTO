@@ -50,15 +50,25 @@
         <h2>ตรวจรางวัลสลากกินแบ่งรัฐบาล</h2>
         <p class="sub">กรอกเลขสลาก 6 หลัก ช่องละ 1 ใบ (เพิ่มได้สูงสุด 10 ใบ) แล้วเลือกงวดที่ต้องการตรวจ</p>
       </div>
-      <div class="card">
-        <form id="ticket-form">
-          <label class="ticket-draw-label">งวด<select id="ticket-draw"></select></label>
-          <div class="ticket-inputs" id="ticket-inputs"></div>
-          <div class="ticket-actions">
-            <button class="btn btn-ghost" type="button" id="ticket-add">+ เพิ่มช่อง</button>
-            <button class="btn btn-primary" type="submit">ตรวจรางวัล</button>
-          </div>
-        </form>
+      <div class="card ticket-card">
+        <div class="ticket-grid">
+          <form id="ticket-form" class="ticket-form">
+            <div class="ticket-form-head">
+              <div>
+                <h3>เลขสลากของคุณ</h3>
+                <p class="note">กรอกเลข 6 หลัก ช่องละ 1 ใบ</p>
+              </div>
+              <label class="ticket-draw-label">งวดที่ตรวจ<select id="ticket-draw"></select></label>
+            </div>
+            <div class="ticket-inputs" id="ticket-inputs"></div>
+            <div class="ticket-actions">
+              <button class="btn btn-ghost" type="button" id="ticket-add">+ เพิ่มช่อง</button>
+              <button class="btn btn-primary" type="submit">ตรวจรางวัล</button>
+              <span class="ticket-count" id="ticket-count"></span>
+            </div>
+          </form>
+          <aside class="draw-panel" id="ticket-panel" aria-live="polite"></aside>
+        </div>
         <div id="ticket-out" class="ticket-out" aria-live="polite"></div>
       </div>
     </section>

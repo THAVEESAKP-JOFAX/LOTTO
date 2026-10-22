@@ -6,7 +6,7 @@ import {
 import { GAMES, frequency, gaps, positional, summary, pad, PLACE_STATS, digitsByPlace } from './lib/analysis.js';
 import { BOTS, pick, explain, adaptiveReport } from './lib/bots.js';
 import { mulberry32, randomSeed } from './lib/rng.js';
-import { theoreticalReturn, TICKET_PRICE } from './lib/prizes.js';
+import { theoreticalReturn, TICKET_PRICE, PRIZES } from './lib/prizes.js';
 import { nextDrawDate } from './lib/schedule.js';
 import { analyzeNumber } from './lib/checker.js';
 import { parseTickets, checkTickets, MAX_TICKETS } from './lib/ticket-check.js';
@@ -345,8 +345,25 @@ function show(res, k) {
       ctx.restore();
     },
   };
+  // ตัวเลขบนชิ้นโดนัท: จำนวนครั้ง + % (ชิ้นเล็กเกินไปไม่ใส่ กันตัวเลขทับกัน)
+  const sliceLabels = {
+    id: 'sliceLabels',
+    afterDatasetsDraw(c) {
+      const { ctx } = c;
+      ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff';
+      ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 3;
+      c.getDatasetMeta(0).data.forEach((arc, i) => {
+        const share = byHits[i].hits / (totalHits || 1);
+        if (share < 0.045) return;
+        const { x, y } = arc.tooltipPosition();
+        ctx.font = '700 15px Anuphan, sans-serif'; ctx.fillText(String(byHits[i].hits), x, y - 7);
+        ctx.font = '500 11px Anuphan, sans-serif'; ctx.fillText(`${Math.round(share * 100)}%`, x, y + 8);
+      });
+      ctx.restore();
+    },
+  };
   const opts = {
-    maintainAspectRatio: false, cutout: '64%', animation: { duration: 400 },
+    maintainAspectRatio: false, cutout: '58%', animation: { duration: 400 },
     plugins: {
       legend: { display: false },
       tooltip: {
@@ -361,10 +378,17 @@ function show(res, k) {
   };
   const labels = byHits.map((b) => nameOf(b.botId).name);
   if (bt.chart) bt.chart.destroy();
-  bt.chart = new Chart($('#equity-chart'), { type: 'doughnut', data: { labels, datasets: ds }, options: opts, plugins: [centerText] });
-  $('#bt-legend').innerHTML = byHits.map((b) => `
-    <li><span class="dot" style="background:${BOT_COLOR[b.botId]}"></span>${nameOf(b.botId).icon} ${nameOf(b.botId).name}
-      <b class="num">${b.hits}</b><small>ครั้ง</small></li>`).join('');
+  bt.chart = new Chart($('#equity-chart'), { type: 'doughnut', data: { labels, datasets: ds }, options: opts, plugins: [centerText, sliceLabels] });
+  const maxHits = Math.max(...byHits.map((b) => b.hits), 1);
+  $('#bt-legend').innerHTML = byHits.map((b) => {
+    const share = Math.round((b.hits / (totalHits || 1)) * 100);
+    return `
+    <li>
+      <span class="lg-name"><span class="dot" style="background:${BOT_COLOR[b.botId]}"></span>${nameOf(b.botId).icon} ${nameOf(b.botId).name}</span>
+      <span class="lg-val"><b>${b.hits}</b> ครั้ง <small>${share}%</small></span>
+      <span class="lg-bar"><i style="width:${(b.hits / maxHits) * 100}%;background:${BOT_COLOR[b.botId]}"></i></span>
+    </li>`;
+  }).join('');
 
   const sorted = [...bots].sort((a, b) => b.profit - a.profit);
   $('#bt-table').innerHTML = `<thead><tr><th>Bot</th><th>ถูก / คาดหวัง</th><th>p-value</th><th>ต้นทุน</th><th>เงินรางวัล</th><th>กำไร/ขาดทุน</th><th>ROI</th><th>เทียบการสุ่ม</th></tr></thead><tbody>` +
@@ -424,18 +448,49 @@ export function renderTicket(draws) {
   const select = $('#ticket-draw');
   select.innerHTML = [...draws].reverse().map((d, i) =>
     `<option value="${d.date}">${fmtDate(d.date)}${i === 0 ? ' (ล่าสุด)' : ''}</option>`).join('');
+  // แผงผลของงวดที่เลือก (แสดงทันที ไม่ต้องรอกดตรวจ)
+  const showPanel = () => {
+    const d = draws.find((x) => x.date === select.value) ?? draws.at(-1);
+    $('#ticket-panel').innerHTML = `
+      <div class="dp-top"><span>ผลสลากงวด</span><b>${fmtDate(d.date)}</b></div>
+      <div class="dp-label">รางวัลที่ 1 · ${baht(PRIZES.first.amount)}</div>
+      <div class="dp-first">${d.first}</div>
+      <div class="dp-grid">
+        <div><span>เลขหน้า 3 ตัว</span><b>${d.front3.join(' ')}</b></div>
+        <div><span>เลขท้าย 3 ตัว</span><b>${d.last3.join(' ')}</b></div>
+        <div><span>เลขท้าย 2 ตัว</span><b>${d.last2}</b></div>
+      </div>
+      <div class="dp-near"><span>ข้างเคียงรางวัลที่ 1</span><b>${d.near.join(' · ')}</b></div>`;
+  };
+  select.addEventListener('change', showPanel);
+  showPanel();
+
   const box = $('#ticket-inputs');
   const addBtn = $('#ticket-add');
+  const inputs = () => [...box.querySelectorAll('input')];
+  const updateCount = () => {
+    const filled = inputs().filter((x) => x.value.length === 6).length;
+    $('#ticket-count').textContent = `กรอกครบ ${filled}/${inputs().length} ใบ`;
+  };
   const addInput = (focus = false) => {
     const n = box.children.length + 1;
     if (n > MAX_TICKETS) return;
+    const wrap = document.createElement('label');
+    wrap.className = 'ticket-slot';
+    wrap.innerHTML = `<span class="slot-no">${n}</span>`;
     const input = document.createElement('input');
     Object.assign(input, { type: 'text', inputMode: 'numeric', maxLength: 6, autocomplete: 'off', placeholder: `กรอกเลขสลาก ใบที่ ${n}` });
     input.className = 'ticket-input';
     input.setAttribute('aria-label', `เลขสลาก ใบที่ ${n}`);
-    input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, 6); });
-    box.append(input);
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/\D/g, '').slice(0, 6);
+      wrap.classList.toggle('done', input.value.length === 6);
+      updateCount();
+    });
+    wrap.append(input);
+    box.append(wrap);
     addBtn.hidden = box.children.length >= MAX_TICKETS;
+    updateCount();
     if (focus) input.focus();
   };
   for (let i = 0; i < 5; i++) addInput();
@@ -443,19 +498,25 @@ export function renderTicket(draws) {
   $('#ticket-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const out = $('#ticket-out');
-    const tickets = parseTickets([...box.querySelectorAll('input')].map((x) => x.value).join(' '));
+    const tickets = parseTickets(inputs().map((x) => x.value).join(' '));
     if (!tickets.length) { out.innerHTML = `<p class="note">กรอกเลขสลาก 6 หลักอย่างน้อย 1 ใบ (สูงสุด ${MAX_TICKETS} ใบ)</p>`; return; }
     const r = checkTickets(draws, tickets, select.value);
     if (r.error) { out.innerHTML = `<p class="note">${esc(r.error)}</p>`; return; }
+    const wins = r.results.filter((x) => x.amount).length;
     out.innerHTML = `
-      <div class="ticket-head">งวด <b>${fmtDate(r.draw.date)}</b> · รางวัลที่ 1 <b class="mono">${r.draw.first}</b></div>
+      <div class="ticket-summary ${r.total ? 'win' : ''}">
+        <div><span>งวด</span><b>${fmtDate(r.draw.date)}</b></div>
+        <div><span>ตรวจทั้งหมด</span><b>${r.results.length} ใบ</b></div>
+        <div><span>ถูกรางวัล</span><b>${wins} ใบ</b></div>
+        <div><span>เงินรางวัลรวม</span><b>${r.total ? baht(r.total) : '—'}</b></div>
+      </div>
       <div class="ticket-list">${r.results.map((x) => `
         <div class="ticket ${x.amount ? 'win' : ''}">
           <span class="num">${x.number}</span>
           <span class="res">${x.amount ? `🎉 ${x.prizes.join(' + ')}` : 'ไม่ถูกรางวัล'}</span>
           <span class="amt">${x.amount ? baht(x.amount) : ''}</span>
         </div>`).join('')}</div>
-      <div class="verdict">${r.total ? `<b>ยินดีด้วย!</b> รวมเงินรางวัล <b>${baht(r.total)}</b>` : `ตรวจ ${r.results.length} ใบ ไม่ถูกรางวัลในงวดนี้`}
-        ${r.partial ? '<br><small>งวดนี้ข้อมูลรางวัลที่ 4–5 ไม่ครบ ตรวจได้เฉพาะรางวัลหลัก</small>' : ''}</div>`;
+      ${r.partial ? '<p class="note">งวดนี้ข้อมูลรางวัลที่ 4–5 ไม่ครบ ตรวจได้เฉพาะรางวัลหลัก</p>' : ''}`;
+    out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
 }
