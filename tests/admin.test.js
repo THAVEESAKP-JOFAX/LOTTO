@@ -317,3 +317,22 @@ test('คำสั่งที่มี @mention bot หรือคำลงท
   assert.equal(cleanCommand({ text: '2ตัวล่าง หน่อยครับ' }), '2ตัวล่าง');
   assert.equal(cleanCommand({ text: 'ตรวจรางวัล 011781' }), 'ตรวจรางวัล 011781');
 });
+
+test('หลายคำสั่งในข้อความเดียว (หลายบรรทัด) → ตอบครบเป็น carousel', async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ draws }));
+  try {
+    const { handleEvent } = await import('../netlify/functions/line-webhook.mjs');
+    const ask = async (text) => handleEvent({ type: 'message', source: { type: 'group', groupId: 'C' }, message: { type: 'text', text } }, 'https://multi.test', normalizeSettings({}));
+    const r = await ask('3ตัวหน้า\n3ตัวท้าย\n3ตัวบน\n2ตัวล่าง\n2ตัวบน\n5ตัวบน\n4ตัวบน\n ลอยบน');
+    assert.ok(r.length <= 5);
+    assert.equal(r[0].contents.type, 'carousel');
+    assert.equal(r[0].contents.contents.length, 8);
+    assert.deepEqual(r.flatMap((m) => emptyTexts(m)), []);
+    const two = await ask('3ตัวบน\n2ตัวล่าง');
+    assert.equal(two.length, 2);
+    assert.equal(two[0].quickReply, undefined); // quick reply ได้เฉพาะข้อความสุดท้าย
+    assert.match((await ask('ตรวจรางวัล\n' + draws.at(-1).first))[0].altText, /รางวัลที่ 1/);
+    assert.equal(await ask('สวัสดี\nวันนี้กินอะไรดี'), null);
+  } finally { globalThis.fetch = realFetch; }
+});

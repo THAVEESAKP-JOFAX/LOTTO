@@ -40,7 +40,41 @@ export function cleanCommand(message) {
     .toLowerCase();
 }
 
+// หลายบรรทัดในข้อความเดียว เช่น "3ตัวหน้า⏎3ตัวท้าย⏎3ตัวบน" → ตอบทุกบรรทัด
+// LINE ตอบได้ครั้งละไม่เกิน 5 ข้อความ จึงรวมการ์ดเป็น carousel (ไม่เกิน 12 การ์ดต่อข้อความ)
+const MAX_LINES = 12;
 export async function handleEvent(ev, siteUrl, settings = null) {
+  const single = await handleSingle(ev, siteUrl, settings);
+  if (single || ev.type !== 'message' || ev.message?.type !== 'text') return single;
+  const lines = cleanCommand(ev.message).split(/\n+/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length < 2) return null;
+  settings ??= await getSettings();
+  const out = [];
+  for (const line of lines.slice(0, MAX_LINES)) {
+    const r = await handleSingle({ ...ev, message: { type: 'text', text: line } }, siteUrl, settings);
+    if (r) out.push(...r);
+  }
+  return out.length ? packMessages(out) : null;
+}
+
+function packMessages(msgs) {
+  const strip = ({ quickReply, ...m }) => m;
+  if (msgs.length <= 5) return msgs.map((m, i) => (i === msgs.length - 1 ? m : strip(m)));
+  const bubbles = msgs.filter((m) => m.type === 'flex' && m.contents?.type === 'bubble');
+  const others = msgs.filter((m) => !bubbles.includes(m)).map(strip);
+  const carousels = [];
+  for (let i = 0; i < bubbles.length; i += 12) {
+    const part = bubbles.slice(i, i + 12);
+    carousels.push({
+      type: 'flex',
+      altText: part.map((b) => b.altText.split('\n')[0]).join(' · ').slice(0, 400),
+      contents: { type: 'carousel', contents: part.map((b) => b.contents) },
+    });
+  }
+  return [...carousels, ...others].slice(0, 5);
+}
+
+async function handleSingle(ev, siteUrl, settings = null) {
   const groupId = ev.source?.groupId;
   if (ev.type === 'join' && groupId) {
     return [{ type: 'text', text: `สวัสดีครับ 🧠 LOTTO-THAI เข้ากลุ่มแล้ว\nGroup ID: ${groupId}\nนำค่านี้ไปใส่ใน LINE_GROUP_IDS บน Netlify เพื่อรับแจ้งเตือนอัตโนมัติ\n\n${HELP_TEXT}` }];

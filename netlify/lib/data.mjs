@@ -11,9 +11,19 @@ async function text(url, timeoutMs = 5000) {
   return res.ok ? res.text() : null;
 }
 
+// ไฟล์ประวัติจากเว็บเปลี่ยนเฉพาะตอน deploy: จำไว้ 5 นาทีในหน่วยความจำของ function
+const baseCache = new Map();
+async function baseFromSite(siteUrl, now) {
+  const hit = baseCache.get(siteUrl);
+  if (hit && now - hit.at < 5 * 60e3) return hit.draws;
+  const draws = JSON.parse(await text(`${siteUrl}/data/draws.json`)).draws;
+  baseCache.set(siteUrl, { at: now, draws });
+  return draws;
+}
+
 // baseDraws: ส่งประวัติมาเองได้ (เช่น สคริปต์ทดสอบที่อ่านจากไฟล์ในเครื่อง) แทนการโหลดจากเว็บ
 export async function loadDraws(siteUrl = process.env.URL, now = new Date(), baseDraws = null) {
-  const base = baseDraws ?? JSON.parse(await text(`${siteUrl}/data/draws.json`)).draws;
+  const base = baseDraws ?? await baseFromSite(siteUrl, now);
   const known = new Set(base.map((d) => d.date));
   const last = base.at(-1).date;
   const today = todayInThailand(now);
