@@ -5,9 +5,10 @@ import {
 } from 'chart.js';
 import { GAMES, frequency, gaps, positional, summary, pad, PLACE_STATS, digitsByPlace } from './lib/analysis.js';
 import { BOTS, pick, explain, adaptiveReport } from './lib/bots.js';
+import { botIcon } from './bot-icons.js';
 import { mulberry32, randomSeed } from './lib/rng.js';
 import { theoreticalReturn, TICKET_PRICE, PRIZES } from './lib/prizes.js';
-import { nextDrawDate } from './lib/schedule.js';
+import { nextDrawDate, upcomingDraw, todayInThailand } from './lib/schedule.js';
 import { analyzeNumber } from './lib/checker.js';
 import { parseTickets, checkTickets, MAX_TICKETS } from './lib/ticket-check.js';
 
@@ -19,8 +20,10 @@ const BOT_COLOR = {
   random: '#8a96a3', hot: '#eb6834', cold: '#2a78d6', overdue: '#eda100',
   positional: '#1baf7a', markov: '#6250d6', ensemble: '#e87ba4', bayes: '#008300', adaptive: '#e34948',
 };
+// ไอคอน + ชื่อ bot สำหรับแสดงบนหน้าเว็บ
+const botLabel = (id, size) => `${botIcon(id, BOT_COLOR[id], size)}<span class="bot-name">${BOTS.find((b) => b.id === id).name}</span>`;
 const INK = { text: '#1f2333', muted: '#5c6378', grid: 'rgba(31,35,51,0.07)', surface: '#ffffff' };
-Chart.defaults.font.family = "'Anuphan', system-ui, sans-serif";
+Chart.defaults.font.family = "'IBM Plex Sans Thai', system-ui, sans-serif";
 Chart.defaults.color = INK.muted;
 
 export const $ = (s) => document.querySelector(s);
@@ -68,8 +71,22 @@ export function renderHero(draws) {
   $('#hero-lede').textContent =
     `ข้อมูล ${draws.length} งวด ตั้งแต่ ${fmtDate(draws[0].date)} ถึง ${fmtDate(last.date)} ` +
     `ตรวจสอบข้าม 2 แหล่ง พร้อมตรวจรางวัลย้อนหลังได้ทุกงวด`;
+  const today = todayInThailand();
+  const next = upcomingDraw(last.date, today);
+  const daysLeft = Math.round((Date.parse(next) - Date.parse(today)) / 864e5);
+  const countdown = daysLeft <= 0 ? 'ออกวันนี้' : `อีก ${daysLeft} วัน`;
+  const stats = $('#hero-stats');
+  if (stats) {
+    stats.innerHTML = [
+      [draws.length.toLocaleString('th-TH'), 'งวดย้อนหลัง 10 ปี'],
+      [fmtDate(next).replace(/ \d{4}$/, ''), `งวดถัดไป · ${countdown}`],
+      ['อัตโนมัติ', 'การอัปเดตผลรางวัล'],
+    ].map(([v, l]) => `<div><dt>${l}</dt><dd>${v}</dd></div>`).join('');
+  }
+  if ($('#footer-update')) $('#footer-update').textContent = `ผลล่าสุด งวด ${fmtDate(last.date)}`;
+  if ($('#footer-year')) $('#footer-year').textContent = String(new Date().getFullYear() + 543);
   $('#latest').innerHTML = `
-    <div class="label">ผลสลากงวดล่าสุด</div>
+    <div class="latest-ribbon"><span class="live-dot"></span>ผลสลากงวดล่าสุด</div>
     <div class="date">${fmtDate(last.date)}</div>
     <div class="label">รางวัลที่ 1</div>
     <div class="first-prize">${last.first}</div>
@@ -77,23 +94,53 @@ export function renderHero(draws) {
       <div><span>เลขหน้า 3 ตัว</span><b>${last.front3.join(' · ')}</b></div>
       <div><span>เลขท้าย 3 ตัว</span><b>${last.last3.join(' · ')}</b></div>
       <div><span>เลขท้าย 2 ตัว</span><b>${last.last2}</b></div>
-    </div>`;
+    </div>
+    <div class="latest-foot"><span>งวดถัดไป <b>${fmtDate(next)}</b></span><span class="pill">${countdown}</span></div>`;
 }
 
 // ---------- overview ----------
+const KPI_ICON = {
+  draws: '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  parity: '<circle cx="8" cy="12" r="4.5"/><circle cx="16" cy="12" r="4.5"/>',
+  range: '<path d="M12 4v16M6 10l6-6 6 6M6 14l6 6 6-6"/>',
+  doubles: '<rect x="3.5" y="6" width="8" height="12" rx="2"/><rect x="12.5" y="6" width="8" height="12" rx="2"/>',
+  repeat: '<path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/>',
+  random: '<path d="M3 12h3l3-7 4 14 3-7h5"/>',
+  payout: '<circle cx="12" cy="12" r="8.5"/><path d="M14.8 9.2a3 3 0 0 0-2.8-1.7c-1.7 0-3 .9-3 2.2 0 3 6 1.6 6 4.6 0 1.3-1.3 2.2-3 2.2a3.2 3.2 0 0 1-3-1.8M12 6v1.5M12 16.5V18"/>',
+};
+const kpiIcon = (k) => `<span class="k-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${KPI_ICON[k]}</svg></span>`;
+// แถบสัดส่วน 2 ฝั่ง เช่น คี่ : คู่
+const splitBar = (a, b, la, lb) => {
+  const pa = Math.round((a / (a + b || 1)) * 100);
+  return `<div class="k-split"><i style="width:${pa}%"></i></div><div class="k-split-l"><span>${la} ${pa}%</span><span>${lb} ${100 - pa}%</span></div>`;
+};
+// แถบเทียบค่าจริงกับค่าคาดหมาย
+const vsBar = (actual, expected) => {
+  const max = Math.max(actual, expected) * 1.15 || 1;
+  return `<div class="k-vs"><i style="width:${(actual / max) * 100}%"></i><b style="left:${(expected / max) * 100}%" title="ค่าคาดหมาย"></b></div>`;
+};
+
 export function renderKpis(draws) {
   const s = summary(draws);
+  const expDoubles = s.draws / 10;
+  const expRepeat = (s.draws - 1) / 100;
   const tiles = [
-    ['จำนวนงวด', s.draws.toLocaleString('th-TH'), '10 ปีล่าสุด · ออกเดือนละ 2 ครั้ง'],
-    ['2 ตัวท้าย คี่ : คู่', `${s.odd} : ${s.even}`, 'คาดหวัง 50 : 50'],
-    ['2 ตัวท้าย สูง : ต่ำ', `${s.high} : ${s.low}`, 'สูง = 50–99'],
-    ['เลขเบิ้ล (00, 11, …)', s.doubles, `คาดหวัง ≈ ${(s.draws / 10).toFixed(0)} งวด`],
-    ['2 ตัวซ้ำงวดติดกัน', s.consecutiveRepeats, `คาดหวัง ≈ ${((s.draws - 1) / 100).toFixed(1)} ครั้ง`],
-    ['ความสุ่มของ 2 ตัวท้าย', `p = ${s.chiLast2.p.toFixed(2)}`, s.chiLast2.p > 0.05 ? 'Chi-square: ไม่พบความเอนเอียง' : 'Chi-square: พบความเอนเอียง'],
-    ['เงินคืนผู้เล่น (ทฤษฎี)', pct(theoreticalReturn(), 0), `ต่อสลากใบละ ${TICKET_PRICE} บาท`],
+    { k: 'draws', label: 'จำนวนงวดที่วิเคราะห์', value: s.draws.toLocaleString('th-TH'), foot: `${fmtDate(draws[0].date)} – ${fmtDate(draws.at(-1).date)} · ออกรางวัลเดือนละ 2 งวด`, feature: true },
+    { k: 'parity', label: 'เลขท้าย 2 ตัว · คี่ : คู่', value: `${s.odd} : ${s.even}`, extra: splitBar(s.odd, s.even, 'คี่', 'คู่'), foot: 'ค่าคาดหมาย 50 : 50' },
+    { k: 'range', label: 'เลขท้าย 2 ตัว · สูง : ต่ำ', value: `${s.high} : ${s.low}`, extra: splitBar(s.high, s.low, 'สูง', 'ต่ำ'), foot: 'เลขสูง = 50–99' },
+    { k: 'doubles', label: 'เลขเบิ้ล (00, 11, …)', value: `${s.doubles} <small>งวด</small>`, extra: vsBar(s.doubles, expDoubles), foot: `ค่าคาดหมายประมาณ ${expDoubles.toFixed(0)} งวด` },
+    { k: 'repeat', label: 'เลขท้าย 2 ตัวซ้ำงวดติดกัน', value: `${s.consecutiveRepeats} <small>ครั้ง</small>`, extra: vsBar(s.consecutiveRepeats, expRepeat), foot: `ค่าคาดหมายประมาณ ${expRepeat.toFixed(1)} ครั้ง` },
+    { k: 'random', label: 'การทดสอบความสุ่ม (Chi-square)', value: `p = ${s.chiLast2.p.toFixed(2)}`, badge: s.chiLast2.p > 0.05 ? ['ok', 'กระจายตัวตามธรรมชาติ'] : ['warn', 'พบความเบี่ยงเบน'], foot: 'ทดสอบกับเลขท้าย 2 ตัวทั้งหมด' },
+    { k: 'payout', label: 'อัตราการจ่ายคืนตามทฤษฎี', value: pct(theoreticalReturn(), 0), extra: `<div class="k-vs payout"><i style="width:${theoreticalReturn() * 100}%"></i></div>`, foot: `ของราคาสลากใบละ ${TICKET_PRICE} บาท` },
   ];
-  $('#kpis').innerHTML = tiles.map(([l, v, f]) =>
-    `<div class="card kpi"><div class="k-label">${l}</div><div class="k-value">${v}</div><div class="k-foot">${f}</div></div>`).join('');
+  $('#kpis').innerHTML = tiles.map((t) => `
+    <div class="card kpi${t.feature ? ' kpi-feature' : ''}">
+      <div class="k-top">${kpiIcon(t.k)}<span class="k-label">${t.label}</span></div>
+      <div class="k-value">${t.value}</div>
+      ${t.badge ? `<span class="k-badge ${t.badge[0]}">${t.badge[1]}</span>` : ''}
+      ${t.extra ?? ''}
+      <div class="k-foot">${t.foot}</div>
+    </div>`).join('');
 }
 
 // ---------- huay ----------
@@ -107,9 +154,9 @@ export function renderHuay(draws) {
   const items = [...freq.keys()];
   const top = (arr, dir) => [...items].sort((a, b) => dir * (arr[b] - arr[a]) || a - b).slice(0, 10);
   const lists = [
-    ['🔥 ออกบ่อยที่สุด', top(freq, 1), (n) => `${freq[n]} ครั้ง`],
-    ['❄️ ออกน้อยที่สุด', top(freq, -1), (n) => `${freq[n]} ครั้ง`],
-    ['⏳ ค้างนานที่สุด', top(gap, 1), (n) => (gap[n] > draws.length ? 'ไม่เคยออก' : `${gap[n]} งวด`)],
+    ['ออกบ่อยที่สุด', top(freq, 1), (n) => `${freq[n]} ครั้ง`],
+    ['ออกน้อยที่สุด', top(freq, -1), (n) => `${freq[n]} ครั้ง`],
+    ['ไม่ออกนานที่สุด', top(gap, 1), (n) => (gap[n] > draws.length ? 'ไม่เคยออก' : `${gap[n]} งวด`)],
   ];
   $('#ranks').innerHTML = lists.map(([t, ns, f]) => `
     <div><h4>${t}</h4><ol>${ns.map((n) => `<li><b>${pad(n, game.digits)}</b><span>${f(n)}</span></li>`).join('')}</ol></div>`).join('');
@@ -127,7 +174,7 @@ export function renderHuay(draws) {
     const expect = (draws.length / 100).toFixed(1);
     $('#heat-title').textContent = huay.metric === 'freq' ? 'แผนที่ความถี่ 00–99' : 'แผนที่งวดที่ค้าง 00–99';
     $('#heat-note').textContent = huay.metric === 'freq'
-      ? `สีเข้ม = ออกบ่อย · ค่าเฉลี่ยที่คาดหวัง ${expect} ครั้ง/เลข · กรอบสว่าง = งวดล่าสุด · ช่วงจริง ${min}–${max} ครั้ง`
+      ? `สีเข้ม = ออกบ่อย · ค่าคาดหมายเฉลี่ย ${expect} ครั้ง/เลข · กรอบสว่าง = งวดล่าสุด · ช่วงจริง ${min}–${max} ครั้ง`
       : `สีเข้ม = ไม่ออกมานาน · กรอบสว่าง = งวดล่าสุด`;
     $('#heat-metric').style.display = '';
   } else {
@@ -135,7 +182,7 @@ export function renderHuay(draws) {
     $('#heat-metric').style.display = 'none';
     $('#heat-title').textContent = `${game.label}: หลักต่อตำแหน่ง`;
     renderPosMap($('#heatmap'), positional(draws, game), ['หลักร้อย', 'หลักสิบ', 'หลักหน่วย']);
-    $('#heat-note').textContent = `ออกงวดละ ${game.perDraw} เลข · ค่าเฉลี่ยคาดหวัง ${(draws.length * game.perDraw / 1000).toFixed(2)} ครั้ง/เลข จึงต้องดูระดับหลักแทน`;
+    $('#heat-note').textContent = `ออกงวดละ ${game.perDraw} เลข · ค่าคาดหมายเฉลี่ย ${(draws.length * game.perDraw / 1000).toFixed(2)} ครั้ง/เลข จึงต้องดูระดับหลักแทน`;
   }
 }
 
@@ -153,7 +200,7 @@ export function renderPosMap(el, m, labels) {
 // ---------- สถิติหวยแยกตามหลัก (2 ตัวบน / 2 ตัวล่าง / 3 ตัวบน) ----------
 export function renderPlaces(draws) {
   const range = `${fmtDate(draws[0].date)} – ${fmtDate(draws.at(-1).date)} (${draws.length} งวด)`;
-  $('#places').innerHTML = PLACE_STATS.map((st) => {
+  $('#places-list').innerHTML = PLACE_STATS.map((st) => {
     const { rows, total } = digitsByPlace(draws, st.value);
     const cells = (counts, cls = '') => {
       const max = Math.max(...counts), min = Math.min(...counts);
@@ -183,7 +230,7 @@ export function renderLottery(draws) {
   renderPosMap($('#posmap'), positional(draws, GAMES.first), ['แสนหลัก', 'หมื่น', 'พัน', 'ร้อย', 'สิบ', 'หน่วย']);
   const ps = s.chiFirstPositions.map((c) => c.p);
   $('#pos-note').textContent = `Chi-square แต่ละตำแหน่ง p = ${ps.map((p) => p.toFixed(2)).join(', ')} ` +
-    `(p > 0.05 = กระจายตัวสม่ำเสมอตามการสุ่ม) · คาดหวัง ${(draws.length / 10).toFixed(1)} ครั้ง/ช่อง`;
+    `(p > 0.05 = กระจายตัวสม่ำเสมอตามการสุ่ม) · ค่าคาดหมาย ${(draws.length / 10).toFixed(1)} ครั้งต่อช่อง`;
 
   const lo = 8, hi = 46;
   const labels = []; const data = [];
@@ -200,7 +247,7 @@ export function renderLottery(draws) {
       },
     },
   });
-  $('#sum-note').textContent = `ค่าเฉลี่ยจริง ${s.meanDigitSum.toFixed(2)} · ค่าคาดหวังทางทฤษฎี 27.00 — รูประฆังคว่ำเกิดจากการบวกเลขสุ่ม ไม่ใช่รูปแบบที่ทำนายได้`;
+  $('#sum-note').textContent = `ค่าเฉลี่ยจริง ${s.meanDigitSum.toFixed(2)} · ค่าคาดหมายทางทฤษฎี 27.00 — รูประฆังคว่ำเกิดจากการบวกเลขสุ่ม ไม่ใช่รูปแบบที่ทำนายได้`;
 }
 
 // ---------- bot ----------
@@ -209,7 +256,7 @@ const botState = { id: 'adaptive' };
 export function renderBots(draws) {
   $('#bot-list').innerHTML = BOTS.map((b) => `
     <button class="bot-card${b.id === botState.id ? ' on' : ''}" data-id="${b.id}">
-      <span class="ic">${b.icon}</span><b>${b.name}</b><small>${b.desc}</small>
+      ${botIcon(b.id, BOT_COLOR[b.id], 'lg')}<b>${b.name}</b><small>${b.desc}</small>
     </button>`).join('');
   $('#bot-list').addEventListener('click', (e) => {
     const c = e.target.closest('.bot-card');
@@ -232,10 +279,10 @@ export function runBot(draws) {
   const picks = pick(bot.id, draws, game, k, mode, mulberry32(seed));
   const next = nextDrawDate(draws.at(-1).date);
   $('#bot-out').innerHTML =
-    `<div class="bot-meta">${bot.icon} ${bot.name} · ${game.label} · โหมด${mode === 'analyze' ? 'วิเคราะห์' : 'สุ่ม'} · seed ${seed} · สำหรับงวด ${fmtDate(next)}</div>` +
+    `<div class="bot-meta"><span class="bot-tag">${botLabel(bot.id, 'sm')}</span> · ${game.label} · โหมด${mode === 'analyze' ? 'วิเคราะห์' : 'สุ่ม'} · seed ${seed} · สำหรับงวด ${fmtDate(next)}</div>` +
     adaptiveNote(bot.id, draws, game) +
     picks.map((n, i) => `<div class="pick" style="animation-delay:${i * 60}ms"><span class="num">${n}</span><span class="why">${esc(explain(n, draws, game))}</span></div>`).join('') +
-    `<div class="bot-meta">โอกาสถูกต่อเลขยังคงเท่าเดิมทุกกลยุทธ์ — ดูหลักฐานในส่วน Backtest ด้านล่าง</div>`;
+    `<div class="bot-meta">ความน่าจะเป็นต่อตัวเลขเท่ากันทุกสูตร โปรดดูหลักฐานประกอบในส่วนผลทดสอบย้อนหลัง</div>`;
 }
 
 function adaptiveNote(botId, draws, game) {
@@ -243,7 +290,7 @@ function adaptiveNote(botId, draws, game) {
   const rep = adaptiveReport(draws, game);
   if (!rep.length) return '';
   const name = (id) => BOTS.find((b) => b.id === id);
-  return `<div class="bot-meta">🧠 งวดนี้เลือกใช้ <b>${name(rep[0].id).icon} ${name(rep[0].id).name}</b> — ` +
+  return `<div class="bot-meta">สูตรที่เลือกใช้ในงวดนี้ <b class="bot-tag">${botLabel(rep[0].id, 'sm')}</b> — ` +
     rep.map((r) => `${name(r.id).name} ${(r.quality * 100).toFixed(1)}`).join(' · ') +
     ` (คะแนนเปอร์เซ็นไทล์เฉลี่ยของเลขที่ออกจริงใน 48 งวดล่าสุด, สุ่ม = 50.0)</div>`;
 }
@@ -266,21 +313,21 @@ function checkGameHtml(r, g) {
   const h = g.history;
   const odds = g.key === 'first'
     ? `<div><span>โอกาสถูกรางวัลใดก็ได้</span><b>1 ใน ${g.oneIn.toLocaleString('th-TH')}</b><small>รางวัลที่ 1 คือ 1 ใน 1,000,000</small></div>`
-    : `<div><span>โอกาสออกงวดหน้า</span><b>${pct(g.probability, 1)}</b><small>1 ใน ${g.oneIn.toLocaleString('th-TH')} · เท่ากับทุกเลข</small></div>`;
+    : `<div><span>ความน่าจะเป็นงวดถัดไป</span><b>${pct(g.probability, 1)}</b><small>1 ใน ${g.oneIn.toLocaleString('th-TH')} · เท่ากันทุกตัวเลข</small></div>`;
   const histTiles = h ? `
-    <div><span>ออกใน ${r.draws} งวด</span><b>${h.count} ครั้ง</b><small>ค่าคาดหวัง ${h.expected.toFixed(1)} ครั้ง</small></div>
-    <div><span>ออกล่าสุด</span><b>${h.lastSeen ? fmtDate(h.lastSeen, true) : 'ไม่เคยออก'}</b><small>${h.gap ? `${h.gap} งวดก่อน` : 'ในช่วง 10 ปี'}</small></div>` : '';
+    <div><span>ออกรางวัลใน ${r.draws} งวด</span><b>${h.count} ครั้ง</b><small>ค่าคาดหมาย ${h.expected.toFixed(1)} ครั้ง</small></div>
+    <div><span>ออกรางวัลครั้งล่าสุด</span><b>${h.lastSeen ? fmtDate(h.lastSeen, true) : 'ไม่เคยออกรางวัล'}</b><small>${h.gap ? `${h.gap} งวดก่อน` : 'ในช่วง 10 ปี'}</small></div>` : '';
   const b = g.buy;
-  const buyTile = `<div><span>ถ้าซื้อเลขนี้ทุกงวด (${b.draws} งวด)</span><b class="${b.profit >= 0 ? 'pos' : 'neg'}">${baht(b.profit)}</b><small>ต้นทุน ${baht(b.cost)} · ถูก ${b.wins} ครั้ง · ROI ${pct(b.roi)}</small></div>`;
+  const buyTile = `<div><span>ผลลัพธ์หากซื้อทุกงวด (${b.draws} งวด)</span><b class="${b.profit >= 0 ? 'pos' : 'neg'}">${baht(b.profit)}</b><small>ต้นทุน ${baht(b.cost)} · ถูก ${b.wins} ครั้ง · ROI ${pct(b.roi)}</small></div>`;
   const parts = g.key === 'first' && r.parts.length
-    ? `<div class="check-tiles">${r.parts.map((p) => `<div><span>${p.label} ${p.number}</span><b>${p.count} ครั้ง</b><small>คาดหวัง ${p.expected.toFixed(1)} · ${p.lastSeen ? `ล่าสุด ${fmtDate(p.lastSeen, true)}` : 'ไม่เคยออก'}</small></div>`).join('')}</div>` : '';
+    ? `<div class="check-tiles">${r.parts.map((p) => `<div><span>${p.label} ${p.number}</span><b>${p.count} ครั้ง</b><small>ค่าคาดหมาย ${p.expected.toFixed(1)} · ${p.lastSeen ? `ล่าสุด ${fmtDate(p.lastSeen, true)}` : 'ไม่เคยออก'}</small></div>`).join('')}</div>` : '';
   const bars = g.bots.map((x) => `
-    <div class="rank-bar"><span>${x.icon} ${x.name}</span><span class="track"><i style="width:${(x.percentile * 100).toFixed(0)}%;background:${BOT_COLOR[x.id]}"></i></span><em>${(x.percentile * 100).toFixed(0)}</em></div>`).join('');
+    <div class="rank-bar"><span class="bot-tag">${botLabel(x.id, 'sm')}</span><span class="track"><i style="width:${(x.percentile * 100).toFixed(0)}%;background:${BOT_COLOR[x.id]}"></i></span><em>${(x.percentile * 100).toFixed(0)}</em></div>`).join('');
   return `<div class="check-game">
     <div class="check-head"><span class="num">${r.number}</span><span class="tag">${g.label}</span></div>
     <div class="check-tiles">${odds}${histTiles}${buyTile}</div>
     ${parts}
-    <div><h3>คะแนนจาก Bot แต่ละตัว <small class="note">(0–100 · 100 = bot ชอบเลขนี้ที่สุด · เส้นกลาง = 50)</small></h3><div class="rank-bars">${bars}</div></div>
+    <div><h3>คะแนนจากแต่ละสูตรวิเคราะห์ <small class="note">(0–100 · 100 = คะแนนสูงสุด · เส้นกึ่งกลาง = 50)</small></h3><div class="rank-bars">${bars}</div></div>
   </div>`;
 }
 
@@ -288,9 +335,9 @@ function checkVerdict(r) {
   const g = r.games[0];
   const avg = r.games.reduce((s, x) => s + x.avgBotPercentile, 0) / r.games.length;
   const h = g.history;
-  const skew = h && h.pMoreThanChance < 0.05 ? `ออกบ่อยกว่าค่าเฉลี่ย (p = ${h.pMoreThanChance.toFixed(3)}) แต่เมื่อดูเลขทั้งหมด 100–1,000 ตัว ย่อมมีบางเลขออกบ่อยโดยบังเอิญเสมอ` : 'ความถี่ในอดีตอยู่ในช่วงปกติของการสุ่ม';
-  return `<div class="verdict"><b>สรุปเลข ${r.number}:</b> bot ให้คะแนนเฉลี่ย ${(avg * 100).toFixed(0)}/100 · ${skew} — ` +
-    `โอกาสออกจริงงวดหน้ายังคงเป็น <b>${g.key === 'first' ? '1 ใน 1,000,000 สำหรับรางวัลที่ 1' : `${pct(g.probability, 1)} เท่ากับทุกเลข`}</b> เพราะการออกรางวัลแต่ละงวดเป็นอิสระต่อกัน</div>`;
+  const skew = h && h.pMoreThanChance < 0.05 ? `ออกบ่อยกว่าค่าเฉลี่ย (p = ${h.pMoreThanChance.toFixed(3)}) แต่เมื่อดูเลขทั้งหมด 100–1,000 ตัว ย่อมมีบางเลขออกบ่อยโดยบังเอิญเสมอ` : 'ความถี่ในอดีตอยู่ในเกณฑ์ปกติของการสุ่ม';
+  return `<div class="verdict"><b>สรุปผลตัวเลข ${r.number}:</b> คะแนนเฉลี่ยจากทุกสูตร ${(avg * 100).toFixed(0)}/100 · ${skew} — ` +
+    `ความน่าจะเป็นในงวดถัดไปยังคงเป็น <b>${g.key === 'first' ? '1 ใน 1,000,000 สำหรับรางวัลที่ 1' : `${pct(g.probability, 1)} เท่ากับทุกเลข`}</b> เนื่องจากการออกรางวัลแต่ละงวดเป็นอิสระต่อกัน</div>`;
 }
 
 // ---------- backtest ----------
@@ -303,8 +350,8 @@ function precomputed(report, gameKey, mode) {
 }
 
 export function renderBacktest(draws, report) {
-  $('#bt-sub').textContent = `ทดสอบย้อนหลังแบบ walk-forward: ทุกงวดให้ bot เห็นเฉพาะข้อมูลก่อนหน้า (เริ่มหลังอุ่นเครื่อง ${report.settings.warmup} งวด) ` +
-    `ซื้อสลากใบละ ${TICKET_PRICE} บาท รับเงินรางวัลตามกองสลาก แล้วเทียบกับการสุ่มเลขทั่วไป`;
+  $('#bt-sub').textContent = `ทดสอบย้อนหลังแบบ Walk-forward โดยแต่ละงวดใช้เฉพาะข้อมูลก่อนหน้างวดนั้น (เริ่มหลังช่วงเตรียมข้อมูล ${report.settings.warmup} งวด) ` +
+    `คำนวณจากราคาสลากใบละ ${TICKET_PRICE} บาทและเงินรางวัลตามประกาศของสำนักงานสลากฯ แล้วเปรียบเทียบกับการสุ่มเลขทั่วไป`;
   segmented($('#bt-game'), Object.values(GAMES).map((g) => [g.key, g.label]), bt.game, (v) => { bt.game = v; update(); });
   bindSeg($('#bt-mode'), (v) => { bt.mode = v; update(); });
   $('#bt-run').addEventListener('click', () => update(true));
@@ -340,8 +387,8 @@ function show(res, k) {
       const { ctx, chartArea: a } = c;
       const x = (a.left + a.right) / 2; const y = (a.top + a.bottom) / 2;
       ctx.save(); ctx.textAlign = 'center'; ctx.fillStyle = INK.text;
-      ctx.font = '700 34px "Cormorant Garamond", serif'; ctx.fillText(String(totalHits), x, y + 4);
-      ctx.fillStyle = INK.muted; ctx.font = '500 13px Anuphan, sans-serif'; ctx.fillText('ครั้งที่เลขตรงผลจริง', x, y + 26);
+      ctx.font = '700 34px "Playfair Display", serif'; ctx.fillText(String(totalHits), x, y + 4);
+      ctx.fillStyle = INK.muted; ctx.font = '500 13px "IBM Plex Sans Thai", sans-serif'; ctx.fillText('ครั้งที่ตรงกับผลรางวัล', x, y + 26);
       ctx.restore();
     },
   };
@@ -356,8 +403,8 @@ function show(res, k) {
         const share = byHits[i].hits / (totalHits || 1);
         if (share < 0.045) return;
         const { x, y } = arc.tooltipPosition();
-        ctx.font = '700 15px Anuphan, sans-serif'; ctx.fillText(String(byHits[i].hits), x, y - 7);
-        ctx.font = '500 11px Anuphan, sans-serif'; ctx.fillText(`${Math.round(share * 100)}%`, x, y + 8);
+        ctx.font = '700 15px "IBM Plex Sans Thai", sans-serif'; ctx.fillText(String(byHits[i].hits), x, y - 7);
+        ctx.font = '500 11px "IBM Plex Sans Thai", sans-serif'; ctx.fillText(`${Math.round(share * 100)}%`, x, y + 8);
       });
       ctx.restore();
     },
@@ -370,7 +417,7 @@ function show(res, k) {
         callbacks: {
           label: (i) => {
             const b = byHits[i.dataIndex];
-            return ` ${nameOf(b.botId).name}: ${b.hits} ครั้ง (คาดหวัง ${b.expectedHits.toFixed(1)})`;
+            return ` ${nameOf(b.botId).name}: ${b.hits} ครั้ง (ค่าคาดหมาย ${b.expectedHits.toFixed(1)})`;
           },
         },
       },
@@ -379,30 +426,44 @@ function show(res, k) {
   const labels = byHits.map((b) => nameOf(b.botId).name);
   if (bt.chart) bt.chart.destroy();
   bt.chart = new Chart($('#equity-chart'), { type: 'doughnut', data: { labels, datasets: ds }, options: opts, plugins: [centerText, sliceLabels] });
+  // แถบสรุปเหนือโดนัท
+  const bestHits = byHits[0];
+  const bestRoi = [...bots].sort((a, b) => b.roi - a.roi)[0];
+  const randomBot = bots.find((b) => b.botId === 'random');
+  const beatRandom = bots.filter((b) => b.botId !== 'random' && randomBot && b.hits > randomBot.hits).length;
+  const avgHits = totalHits / (bots.length || 1);
+  if ($('#bt-stats')) {
+    $('#bt-stats').innerHTML = [
+      ['ถูกรางวัลบ่อยที่สุด', `<span class="bot-tag">${botLabel(bestHits.botId, 'sm')}</span>`, `${bestHits.hits} ครั้ง จาก ${bestHits.draws} งวด`],
+      ['ค่าเฉลี่ยต่อสูตร', `${avgHits.toFixed(1)} ครั้ง`, `ค่าคาดหมายกรณีสุ่ม ${bots[0].expectedHits.toFixed(1)} ครั้ง`],
+      ['ผลตอบแทน (ROI) สูงสุด', pct(bestRoi.roi), `${nameOf(bestRoi.botId).name}`],
+      ['สูตรที่ดีกว่าการสุ่ม', `${beatRandom} / ${bots.length - 1} สูตร`, randomBot ? `การสุ่มเลขทั่วไปถูก ${randomBot.hits} ครั้ง` : ''],
+    ].map(([l, v, f], i) => `<div class="bt-stat${i === 0 ? ' feature' : ''}"><span>${l}</span><b>${v}</b><small>${f}</small></div>`).join('');
+  }
   const maxHits = Math.max(...byHits.map((b) => b.hits), 1);
   $('#bt-legend').innerHTML = byHits.map((b) => {
     const share = Math.round((b.hits / (totalHits || 1)) * 100);
     return `
     <li>
-      <span class="lg-name"><span class="dot" style="background:${BOT_COLOR[b.botId]}"></span>${nameOf(b.botId).icon} ${nameOf(b.botId).name}</span>
+      <span class="lg-name">${botLabel(b.botId, 'sm')}</span>
       <span class="lg-val"><b>${b.hits}</b> ครั้ง <small>${share}%</small></span>
       <span class="lg-bar"><i style="width:${(b.hits / maxHits) * 100}%;background:${BOT_COLOR[b.botId]}"></i></span>
     </li>`;
   }).join('');
 
   const sorted = [...bots].sort((a, b) => b.profit - a.profit);
-  $('#bt-table').innerHTML = `<thead><tr><th>Bot</th><th>ถูก / คาดหวัง</th><th>p-value</th><th>ต้นทุน</th><th>เงินรางวัล</th><th>กำไร/ขาดทุน</th><th>ROI</th><th>เทียบการสุ่ม</th></tr></thead><tbody>` +
+  $('#bt-table').innerHTML = `<thead><tr><th>สูตรวิเคราะห์</th><th>ถูกรางวัล / ค่าคาดหมาย</th><th>p-value</th><th>ต้นทุนรวม</th><th>เงินรางวัลรวม</th><th>กำไร (ขาดทุน)</th><th>ROI</th><th>เปรียบเทียบกับการสุ่ม</th></tr></thead><tbody>` +
     sorted.map((b) => {
       const bot = BOTS.find((x) => x.id === b.botId);
       return `<tr>
-        <td><span class="dot" style="background:${BOT_COLOR[b.botId]}"></span>${bot.icon} ${bot.name}</td>
+        <td><span class="bot-tag">${botLabel(b.botId, 'sm')}</span></td>
         <td class="num">${b.hits} / ${b.expectedHits.toFixed(1)}</td>
         <td class="num">${b.pValue.toFixed(3)}</td>
         <td class="num">${baht(b.cost)}</td>
         <td class="num">${baht(b.revenue)}</td>
         <td class="num ${b.profit >= 0 ? 'pos' : 'neg'}">${baht(b.profit)}</td>
         <td class="num ${b.roi >= 0 ? 'pos' : 'neg'}">${pct(b.roi)}</td>
-        <td><span class="luck">${pct(b.luckPercentile, 0)}</span><span class="bar" title="ตำแหน่งเทียบการสุ่ม ${res.runs} รอบ (แถบ = 5–95%)"><i style="left:${(b.luckPercentile * 100).toFixed(0)}%"></i></span></td>
+        <td><span class="luck">${pct(b.luckPercentile, 0)}</span><span class="bar" title="ตำแหน่งเมื่อเปรียบเทียบกับการสุ่ม ${res.runs} รอบ (แถบ = ช่วง 5–95%)"><i style="left:${(b.luckPercentile * 100).toFixed(0)}%"></i></span></td>
       </tr>`;
     }).join('') + '</tbody>';
 
@@ -410,14 +471,14 @@ function show(res, k) {
   const bestBot = BOTS.find((x) => x.id === best.botId);
   const sig = bots.filter((b) => b.pValue < 0.05 / bots.length);
   $('#bt-verdict').innerHTML =
-    `<b>สรุป ${game.label} (${k} เลข/งวด, ${best.draws} งวด):</b> ` +
-    `bot ที่ผลดีที่สุดคือ ${bestBot.icon} ${bestBot.name} ROI ${pct(best.roi)} — ` +
-    (best.profit < 0 ? 'ยังขาดทุน และ' : 'แม้มีกำไรในช่วงนี้ แต่') +
-    ` ${sig.length ? `มี ${sig.length} bot ที่ผ่านเกณฑ์นัยสำคัญ (p < ${(0.05 / bots.length).toFixed(3)})` : 'ไม่มี bot ใดถูกบ่อยกว่าการสุ่มอย่างมีนัยสำคัญ (Bonferroni p < ' + (0.05 / bots.length).toFixed(3) + ')'} ` +
-    `ช่วง ROI ของการสุ่มเลขทั่วไป (5–95%) คือ ${pct(res.baseline.roi.p5)} ถึง ${pct(res.baseline.roi.p95)} — ` +
+    `<b>สรุปผล ${game.label} (${k} ตัวเลขต่องวด · ${best.draws} งวด):</b> ` +
+    `สูตรที่ให้ผลดีที่สุดคือ <b>${bestBot.name}</b> ROI ${pct(best.roi)} — ` +
+    (best.profit < 0 ? 'ผลตอบแทนยังติดลบ และ' : 'แม้มีกำไรในช่วงเวลานี้ แต่') +
+    ` ${sig.length ? `มี ${sig.length} สูตรที่ผ่านเกณฑ์นัยสำคัญทางสถิติ (p < ${(0.05 / bots.length).toFixed(3)})` : 'ไม่มีสูตรใดถูกรางวัลบ่อยกว่าการสุ่มอย่างมีนัยสำคัญทางสถิติ (Bonferroni p < ' + (0.05 / bots.length).toFixed(3) + ')'} ` +
+    ` · ช่วง ROI ของการสุ่มเลขทั่วไป (5–95%) อยู่ระหว่าง ${pct(res.baseline.roi.p5)} ถึง ${pct(res.baseline.roi.p95)} · ` +
     (bots.every((b) => b.luckPercentile > 0.05 && b.luckPercentile < 0.95)
-      ? 'ผลของทุก bot อยู่ในกรอบของ “โชค”'
-      : 'บาง bot อยู่นอกช่วง 5–95% แต่เมื่อทดสอบหลายกลยุทธ์พร้อมกัน การหลุดกรอบบ้างเป็นเรื่องปกติของความบังเอิญ');
+      ? 'ผลลัพธ์ของทุกสูตรอยู่ในช่วงที่อธิบายได้ด้วยความบังเอิญ'
+      : 'บางสูตรอยู่นอกช่วง 5–95% ซึ่งเป็นเรื่องปกติเมื่อทดสอบหลายสูตรพร้อมกัน');
 }
 
 // ---------- history ----------
@@ -436,7 +497,7 @@ export function renderHistory(draws) {
         `<td class="mono">${q.length === 2 && d.last2 === q ? `<mark>${d.last2}</mark>` : d.last2}</td></tr>`).join('') +
       (list.length ? '' : '<tr><td colspan="5">ไม่พบเลขนี้ในช่วง 10 ปี</td></tr>') + '</tbody>';
     $('#hist-more').style.display = list.length > limit ? '' : 'none';
-    $('#hist-more').textContent = `แสดงเพิ่ม (${list.length - limit} งวด)`;
+    $('#hist-more').textContent = `แสดงเพิ่มเติม (${list.length - limit} งวด)`;
   }
   $('#hist-q').addEventListener('input', () => { limit = 24; draw(); });
   $('#hist-more').addEventListener('click', () => { limit += 48; draw(); });
@@ -513,10 +574,25 @@ export function renderTicket(draws) {
       <div class="ticket-list">${r.results.map((x) => `
         <div class="ticket ${x.amount ? 'win' : ''}">
           <span class="num">${x.number}</span>
-          <span class="res">${x.amount ? `🎉 ${x.prizes.join(' + ')}` : 'ไม่ถูกรางวัล'}</span>
+          <span class="res">${x.amount ? `ถูกรางวัล · ${x.prizes.join(' + ')}` : 'ไม่ถูกรางวัล'}</span>
           <span class="amt">${x.amount ? baht(x.amount) : ''}</span>
         </div>`).join('')}</div>
       ${r.partial ? '<p class="note">งวดนี้ข้อมูลรางวัลที่ 4–5 ไม่ครบ ตรวจได้เฉพาะรางวัลหลัก</p>' : ''}`;
     out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
+}
+
+// ไฮไลต์เมนูตามส่วนที่กำลังดู (ใช้ทั้งเมนูบนหน้าเว็บและแถบข้างหน้า Admin)
+export function scrollSpy(navSelector) {
+  const links = [...document.querySelectorAll(`${navSelector} a[href^="#"]`)];
+  const byId = new Map(links.map((a) => [a.getAttribute('href').slice(1), a]));
+  const sections = [...byId.keys()].map((id) => document.getElementById(id)).filter(Boolean);
+  if (!sections.length || !('IntersectionObserver' in window)) return;
+  const visible = new Set();
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) (e.isIntersecting ? visible.add(e.target.id) : visible.delete(e.target.id));
+    const current = sections.find((s) => visible.has(s.id));
+    if (current) links.forEach((a) => a.classList.toggle('active', a === byId.get(current.id)));
+  }, { rootMargin: '-35% 0px -55% 0px' });
+  sections.forEach((s) => io.observe(s));
 }

@@ -12,7 +12,7 @@
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Trirong:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Noto+Serif+Thai:wght@500;600;700;800&family=Playfair+Display:wght@500;600;700;800&display=swap" rel="stylesheet" />
 </head>
 <body>
   <header class="topbar">
@@ -28,18 +28,20 @@
       <a href="#backtest" data-opt="backtest" hidden>Backtest</a>
       <a href="#history">ผลย้อนหลัง</a>
     </nav>
+    <a class="btn btn-primary btn-sm topbar-cta" href="#ticket">ตรวจรางวัล</a>
   </header>
 
   <main id="top">
     <section class="hero">
       <div class="hero-text">
-        <p class="eyebrow">สลากกินแบ่งรัฐบาล · ย้อนหลัง 10 ปี</p>
-        <h1>วิเคราะห์ด้วย<span class="accent">ข้อมูล</span><br />ไม่ใช่ความเชื่อ</h1>
+        <p class="eyebrow">ระบบวิเคราะห์สลากกินแบ่งรัฐบาล</p>
+        <h1>สถิติสลากกินแบ่ง<br /><span class="accent">รัฐบาลย้อนหลัง 10 ปี</span></h1>
         <p class="lede" id="hero-lede">กำลังโหลดข้อมูล…</p>
         <div class="hero-cta">
           <a class="btn btn-primary" href="#ticket">ตรวจรางวัล</a>
-          <a class="btn btn-ghost" href="#overview">ดูสถิติ 10 ปี</a>
+          <a class="btn btn-ghost" href="#overview">ดูสถิติย้อนหลัง</a>
         </div>
+        <dl class="hero-stats" id="hero-stats"></dl>
       </div>
       <article class="latest card" id="latest" aria-live="polite"></article>
     </section>
@@ -62,7 +64,7 @@
             </div>
             <div class="ticket-inputs" id="ticket-inputs"></div>
             <div class="ticket-actions">
-              <button class="btn btn-ghost" type="button" id="ticket-add">+ เพิ่มช่อง</button>
+              <button class="btn btn-ghost" type="button" id="ticket-add">+ เพิ่มช่องกรอก</button>
               <button class="btn btn-primary" type="submit">ตรวจรางวัล</button>
               <span class="ticket-count" id="ticket-count"></span>
             </div>
@@ -76,18 +78,18 @@
     <section id="overview" class="section">
       <div class="section-head">
         <p class="eyebrow">ภาพรวม</p>
-        <h2>สถิติ 10 ปีในหนึ่งหน้า</h2>
+        <h2>สรุปสถิติย้อนหลัง 10 ปี</h2>
       </div>
       <div class="kpis" id="kpis"></div>
     </section>
 
-    <section class="section">
+    <section id="places" class="section">
       <div class="section-head">
         <p class="eyebrow">สถิติตามหลัก</p>
-        <h2>เลขแต่ละหลักออกกี่ครั้ง ย้อนหลัง 10 ปี</h2>
-        <p class="sub">นับจำนวนครั้งที่เลข 0–9 ออกในหลักร้อย สิบ หน่วย · ช่องสีเข้ม = ออกบ่อยในแถวนั้น ตัวหนา = มากที่สุดของแถว</p>
+        <h2>ความถี่ของตัวเลขแยกตามหลัก</h2>
+        <p class="sub">จำนวนครั้งที่ตัวเลข 0–9 ปรากฏในหลักร้อย หลักสิบ และหลักหน่วย ย้อนหลัง 10 ปี · ช่องสีเข้มแสดงความถี่สูง ตัวเลขสีน้ำเงินคือค่าสูงสุดของแถว</p>
       </div>
-      <div class="places" id="places"></div>
+      <div class="places" id="places-list"></div>
     </section>
 
     <section id="huay" class="section">
@@ -136,21 +138,21 @@
 
     <section id="bot" class="section optional" hidden>
       <div class="section-head">
-        <p class="eyebrow">Bot</p>
-        <h2>Bot วิเคราะห์ & สุ่มเลข</h2>
-        <p class="sub">เลือกกลยุทธ์ ประเภทรางวัล และจำนวนเลข — โหมด “วิเคราะห์” เลือกเลขคะแนนสูงสุด, โหมด “สุ่ม” สุ่มถ่วงน้ำหนักตามคะแนน</p>
+        <p class="eyebrow">ระบบวิเคราะห์ตัวเลข</p>
+        <h2>ประมวลผลตัวเลขด้วยสูตรวิเคราะห์</h2>
+        <p class="sub">เลือกสูตรวิเคราะห์ ประเภทรางวัล และจำนวนตัวเลข · โหมดวิเคราะห์จะเลือกตัวเลขที่มีคะแนนสูงสุด ส่วนโหมดสุ่มจะสุ่มโดยถ่วงน้ำหนักตามคะแนน</p>
       </div>
       <div class="bots" id="bot-list"></div>
       <div class="card bot-panel">
         <div class="controls">
-          <label>ประเภท<select id="bot-game"></select></label>
-          <label>จำนวนเลข<input id="bot-k" type="number" min="1" max="20" value="5" /></label>
+          <label>ประเภทรางวัล<select id="bot-game"></select></label>
+          <label>จำนวนตัวเลข<input id="bot-k" type="number" min="1" max="20" value="5" /></label>
           <div class="seg" id="bot-mode">
-            <button data-v="analyze" class="on">วิเคราะห์</button>
-            <button data-v="random">สุ่ม</button>
+            <button data-v="analyze" class="on">โหมดวิเคราะห์</button>
+            <button data-v="random">โหมดสุ่ม</button>
           </div>
-          <label>Seed <small>(ว่าง = สุ่มใหม่)</small><input id="bot-seed" inputmode="numeric" placeholder="เช่น 2569" /></label>
-          <button class="btn btn-primary" id="bot-run">ให้ Bot เลือก</button>
+          <label>รหัสการสุ่ม (Seed) <small>ไม่บังคับ</small><input id="bot-seed" inputmode="numeric" /></label>
+          <button class="btn btn-primary" id="bot-run">ประมวลผลตัวเลข</button>
         </div>
         <div id="bot-out" class="bot-out" aria-live="polite"></div>
       </div>
@@ -158,14 +160,14 @@
 
     <section id="check" class="section optional" hidden>
       <div class="section-head">
-        <p class="eyebrow">ทดสอบเลข</p>
-        <h2>ใส่เลขของคุณ ให้ Bot ทดสอบ</h2>
-        <p class="sub">เลข 2 หลัก = เลขท้าย 2 ตัว · 3 หลัก = 3 ตัวหน้าและ 3 ตัวท้าย · 6 หลัก = สลากเต็มใบ — ดูโอกาสจริง สถิติ 10 ปี มุมมองของ bot ทุกตัว และผลถ้าซื้อเลขนี้ทุกงวด</p>
+        <p class="eyebrow">ทดสอบชุดตัวเลข</p>
+        <h2>วิเคราะห์ตัวเลขที่ต้องการ</h2>
+        <p class="sub">ตัวเลข 2 หลักตรวจกับเลขท้าย 2 ตัว · 3 หลักตรวจกับเลขหน้าและเลขท้าย 3 ตัว · 6 หลักตรวจทุกรางวัล พร้อมแสดงความน่าจะเป็น สถิติย้อนหลัง 10 ปี คะแนนจากแต่ละสูตร และผลลัพธ์หากซื้อทุกงวด</p>
       </div>
       <div class="card">
-        <form class="controls" id="check-form">
-          <label>เลขที่ต้องการทดสอบ<input id="check-input" inputmode="numeric" maxlength="6" placeholder="เช่น 48, 171 หรือ 011781" autocomplete="off" /></label>
-          <button class="btn btn-primary" type="submit">ทดสอบเลขนี้</button>
+        <form class="check-form" id="check-form">
+          <label class="field check-field"><span>ตัวเลขที่ต้องการวิเคราะห์ (2, 3 หรือ 6 หลัก)</span><span class="field-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="check-input" inputmode="numeric" maxlength="6" autocomplete="off" /></span></label>
+          <button class="btn btn-primary" type="submit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>วิเคราะห์ตัวเลข</button>
         </form>
         <div id="check-out" class="check-out" aria-live="polite"></div>
       </div>
@@ -173,47 +175,68 @@
 
     <section id="backtest" class="section optional" hidden>
       <div class="section-head">
-        <p class="eyebrow">Backtest</p>
-        <h2>ถ้าเล่นตาม Bot มา 9 ปี จะเป็นอย่างไร</h2>
+        <p class="eyebrow">ผลทดสอบย้อนหลัง</p>
+        <h2>ผลการทดสอบสูตรย้อนหลัง 9 ปี</h2>
         <p class="sub" id="bt-sub"></p>
       </div>
       <div class="card">
         <div class="controls">
           <div class="seg" id="bt-game"></div>
           <div class="seg" id="bt-mode">
-            <button data-v="analyze" class="on">วิเคราะห์</button>
-            <button data-v="random">สุ่ม</button>
+            <button data-v="analyze" class="on">โหมดวิเคราะห์</button>
+            <button data-v="random">โหมดสุ่ม</button>
           </div>
-          <label>เลขต่องวด<input id="bt-k" type="number" min="1" max="20" value="5" /></label>
-          <button class="btn btn-ghost" id="bt-run">คำนวณใหม่</button>
+          <label>จำนวนตัวเลขต่องวด<input id="bt-k" type="number" min="1" max="20" value="5" /></label>
+          <button class="btn btn-ghost" id="bt-run">ประมวลผลใหม่</button>
           <span class="status" id="bt-status"></span>
         </div>
+        <div class="bt-stats" id="bt-stats"></div>
         <div class="donut-wrap">
           <div class="chart-box donut-box"><canvas id="equity-chart" aria-label="จำนวนครั้งที่เลขของแต่ละ bot ตรงกับผลจริง"></canvas></div>
           <ul class="donut-legend" id="bt-legend"></ul>
         </div>
-        <p class="note">ตัวเลข = จำนวนครั้งที่เลขของแต่ละ bot ตรงกับเลขที่ออกจริง ตลอดช่วงทดสอบ · ชี้ที่ชิ้นโดนัทเพื่อดูค่าคาดหวังถ้าสุ่ม</p>
+        <p class="note">ตัวเลขบนแผนภูมิคือจำนวนครั้งที่ชุดตัวเลขของแต่ละสูตรตรงกับผลรางวัลจริงตลอดช่วงทดสอบ · ชี้ที่แผนภูมิเพื่อดูค่าคาดหมายกรณีสุ่ม</p>
         <div class="table-wrap"><table class="table" id="bt-table"></table></div>
         <div class="verdict" id="bt-verdict"></div>
       </div>
     </section>
 
     <section id="history" class="section">
-      <div class="section-head">
-        <p class="eyebrow">ผลย้อนหลัง</p>
-        <h2>ผลรางวัลทุกงวด</h2>
-        <label class="search">ค้นหาเลข<input id="hist-q" inputmode="numeric" placeholder="เช่น 48 หรือ 011781" /></label>
+      <div class="section-head split">
+        <div>
+          <p class="eyebrow">ผลย้อนหลัง</p>
+          <h2>ผลสลากกินแบ่งรัฐบาลทุกงวด</h2>
+        </div>
+        <label class="search">ค้นหาตัวเลข<input id="hist-q" inputmode="numeric" /></label>
       </div>
       <div class="card">
         <div class="table-wrap"><table class="table" id="hist-table"></table></div>
-        <button class="btn btn-ghost" id="hist-more">แสดงเพิ่ม</button>
+        <button class="btn btn-ghost" id="hist-more">แสดงเพิ่มเติม</button>
       </div>
     </section>
 
   </main>
 
   <footer class="footer">
-    <p>LOTTO Analytics · เพื่อการศึกษาและความบันเทิง · <a href="/admin">ผู้ดูแลระบบ</a></p>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a class="brand" href="#top"><img class="brand-mark" src="/favicon.svg" alt="" width="34" height="34" /><span>LOTTO <em>Analytics</em></span></a>
+        <p>สถิติสลากกินแบ่งรัฐบาลย้อนหลัง 10 ปี ตรวจรางวัลได้ทุกงวด เพื่อการศึกษาและความบันเทิง</p>
+      </div>
+      <nav class="footer-links" aria-label="ลิงก์ท้ายเว็บ">
+        <b>เมนู</b>
+        <a href="#ticket">ตรวจรางวัล</a>
+        <a href="#overview">ภาพรวม</a>
+        <a href="#places">สถิติตามหลัก</a>
+        <a href="#history">ผลย้อนหลัง</a>
+      </nav>
+      <div class="footer-links">
+        <b>ข้อมูล</b>
+        <span id="footer-update">—</span>
+        <a href="/admin">ผู้ดูแลระบบ</a>
+      </div>
+    </div>
+    <p class="footer-copy">© <span id="footer-year"></span> LOTTO Analytics</p>
   </footer>
 
   <script type="module" src="/src/main.js"></script>

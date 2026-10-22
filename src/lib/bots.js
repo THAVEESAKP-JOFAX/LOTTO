@@ -35,35 +35,35 @@ const recent = (H) => H.slice(-WINDOW);
 export const BOTS = [
   {
     id: 'random', name: 'สุ่มเลขทั่วไป', icon: '🎲',
-    desc: 'สุ่มเลขแบบทุกเลขมีโอกาสเท่ากัน — ใช้เป็นเกณฑ์เปรียบเทียบกับสูตรอื่น',
+    desc: 'สุ่มตัวเลขโดยทุกตัวเลขมีโอกาสเท่ากัน ใช้เป็นเกณฑ์มาตรฐานในการเปรียบเทียบกับสูตรอื่น',
     score: (H, game) => fullSpace(game)
       ? { full: new Float64Array(game.space).fill(1) }
       : { pos: Array.from({ length: game.digits }, () => new Array(10).fill(1)) },
   },
   {
     id: 'hot', name: 'เลขออกบ่อย', icon: '🔥',
-    desc: `เลขที่ออกบ่อยที่สุดใน ${WINDOW} งวดล่าสุด`,
+    desc: `คัดเลือกตัวเลขที่ออกรางวัลบ่อยที่สุดในช่วง ${WINDOW} งวดล่าสุด`,
     score: (H, game) => fullSpace(game)
       ? { full: Float64Array.from(frequency(recent(H), game), (c) => c + 0.5) }
       : { pos: positional(recent(H), game).map((r) => r.map((c) => c + 0.5)) },
   },
   {
     id: 'cold', name: 'เลขออกน้อย', icon: '❄️',
-    desc: `เลขที่ออกน้อยที่สุดใน ${WINDOW} งวดล่าสุด`,
+    desc: `คัดเลือกตัวเลขที่ออกรางวัลน้อยที่สุดในช่วง ${WINDOW} งวดล่าสุด`,
     score: (H, game) => fullSpace(game)
       ? { full: Float64Array.from(frequency(recent(H), game), (c) => 1 / (c + 0.5)) }
       : { pos: positional(recent(H), game).map((r) => r.map((c) => 1 / (c + 0.5))) },
   },
   {
     id: 'overdue', name: 'เลขไม่ออกนาน', icon: '⏳',
-    desc: 'เลขที่ไม่ออกมานานที่สุด (ความเชื่อว่า “ถึงคิวต้องออก”)',
+    desc: 'คัดเลือกตัวเลขที่ไม่ได้ออกรางวัลเป็นระยะเวลานานที่สุด',
     score: (H, game) => fullSpace(game)
       ? { full: Float64Array.from(gaps(H, game)) }
       : { pos: positionalGaps(H, game) },
   },
   {
     id: 'positional', name: 'เลขเด่นแต่ละหลัก', icon: '🧮',
-    desc: 'ดูว่าแต่ละหลัก (หลักหน่วย หลักสิบ …) ออกเลขอะไรบ่อยตลอด 10 ปี แล้วนำมาประกอบเป็นเลข',
+    desc: 'วิเคราะห์ความถี่ของตัวเลขในแต่ละหลักตลอด 10 ปี แล้วนำมาประกอบเป็นชุดตัวเลข',
     score: (H, game) => {
       const pos = positional(H, game).map((r) => {
         const n = r.reduce((a, b) => a + b, 0);
@@ -74,7 +74,7 @@ export const BOTS = [
   },
   {
     id: 'markov', name: 'เลขต่อจากงวดก่อน', icon: '🔗',
-    desc: 'ดูจากอดีตว่า ถ้างวดก่อนออกเลขนี้ งวดถัดไปมักออกเลขอะไรตามมา',
+    desc: 'วิเคราะห์รูปแบบการเปลี่ยนแปลงของตัวเลขจากงวดก่อนหน้าไปสู่งวดถัดไป',
     score: (H, game) => {
       const T = transitions(H, game);
       const last = H.length ? game.values(H.at(-1)) : [];
@@ -92,7 +92,7 @@ export const BOTS = [
   },
   {
     id: 'ensemble', name: 'รวมหลายสูตร', icon: '👑',
-    desc: 'รวมคะแนนจาก เลขออกบ่อย + เลขไม่ออกนาน + เลขเด่นแต่ละหลัก',
+    desc: 'ผสานคะแนนจากสูตรเลขออกบ่อย เลขไม่ออกนาน และเลขเด่นแต่ละหลัก',
     score: (H, game) => {
       const parts = ['hot', 'overdue', 'positional'].map((id) => getBot(id).score(H, game));
       if (fullSpace(game)) {
@@ -108,7 +108,7 @@ export const BOTS = [
   },
   {
     id: 'bayes', name: 'เลขมาแรงช่วงนี้', icon: '📐',
-    desc: `นับความถี่โดยให้งวดล่าสุดมีน้ำหนักมากกว่างวดเก่า (น้ำหนักลดลงครึ่งทุก ${HALF_LIFE} งวด)`,
+    desc: `วิเคราะห์ความถี่โดยให้น้ำหนักกับงวดล่าสุดมากกว่างวดก่อนหน้า (น้ำหนักลดลงครึ่งหนึ่งทุก ${HALF_LIFE} งวด)`,
     score: (H, game) => {
       const w = (i) => 0.5 ** ((H.length - 1 - i) / HALF_LIFE);
       if (fullSpace(game)) {
@@ -123,7 +123,7 @@ export const BOTS = [
   },
   {
     id: 'adaptive', name: 'เลือกสูตรให้อัตโนมัติ', icon: '🧠',
-    desc: `ทุกงวดลองทุกสูตร (${ADAPT_CANDIDATES.length} สูตร) ย้อนหลัง ${ADAPT_LOOKBACK} งวด แล้วเลือกใช้สูตรที่ทายใกล้เคียงผลจริงที่สุดในช่วงนั้น`,
+    desc: `ประเมินผลทั้ง ${ADAPT_CANDIDATES.length} สูตรย้อนหลัง ${ADAPT_LOOKBACK} งวดทุกงวด แล้วเลือกใช้สูตรที่ให้ผลใกล้เคียงผลรางวัลจริงมากที่สุด`,
     score: (H, game) => {
       const best = adaptiveReport(H, game)[0];
       return cachedScore(best ? best.id : 'ensemble', H, game);
