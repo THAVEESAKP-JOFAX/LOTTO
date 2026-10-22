@@ -216,9 +216,9 @@ test('/api/draws: งวดใหม่ที่ออกหลัง deploy ข
     '2026-10-16,011781,"040201,487283",,,,48,"392,402","171,255","011780,011782"\n';
   const realFetch = globalThis.fetch;
   globalThis.fetch = async (url) => new Response(String(url).endsWith('/data/draws.json') ? JSON.stringify({ draws: base }) : String(url).endsWith('.csv') ? csv : '', { status: String(url).includes('archive') ? 404 : 200 });
-  const realUrl = process.env.URL; process.env.URL = 'https://site.test';
+  const realUrl = process.env.URL; process.env.URL = 'https://draws-api.test'; // URL เฉพาะ ไม่ใช้แคชประวัติร่วมกับ test อื่น
   try {
-    const res = await drawsApi(new Request('https://site.test/api/draws'));
+    const res = await drawsApi(new Request('https://draws-api.test/api/draws'));
     const body = await res.json();
     const last = body.draws.at(-1);
     assert.equal(body.draws.length, base.length + 1);
