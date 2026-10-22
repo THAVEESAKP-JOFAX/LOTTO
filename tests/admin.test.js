@@ -363,3 +363,18 @@ test('ฝันเห็นสิ่งไม่มีชีวิต → คำ
   assert.equal(r('ฝันว่าตกตึก').found[0].title, 'ตกจากที่สูง'); // ตำราเฉพาะมาก่อนกลุ่มสิ่งของ
   for (const t of ['ฝันเห็นรถไฟ', 'ฝันเห็นมีด', 'ฝันเห็นสายรุ้ง']) assert.ok(r(t).two.length >= 3, t);
 });
+
+test('พิมพ์คำสั่งผิด: bot แนะนำคำสั่งที่ใกล้เคียง แต่ไม่ตอบแชตทั่วไป', async () => {
+  const { handleEvent, suggestCommand } = await import('../netlify/functions/line-webhook.mjs');
+  assert.equal(suggestCommand('3ตัวบอน'), '3ตัวบน');
+  assert.equal(suggestCommand('เลขเดด'), 'เลขเด็ด');
+  assert.equal(suggestCommand('สวัสดี'), null);
+  const ask = async (text, mention) => handleEvent({ type: 'message', source: { type: 'group', groupId: 'C' }, message: { type: 'text', text, mention } }, 'https://x', normalizeSettings({}));
+  const r = await ask('2ตัวลาง');
+  assert.match(r[0].text, /หมายถึง "2ตัวล่าง"/);
+  assert.equal(r[0].quickReply.items[0].action.text, '2ตัวล่าง');
+  assert.match((await ask('เลขอะไรดี'))[0].text, /ไม่พบคำสั่ง/);
+  assert.match((await ask('@LOTTO-THAI สวัสดี', { mentionees: [{ index: 0, length: 11, isSelf: true }] }))[0].text, /คำสั่ง/);
+  for (const chat of ['สวัสดีครับ', 'วันนี้กินอะไรดี', 'ฝันดีนะ', '@เพื่อน ไปไหน']) assert.equal(await ask(chat), null, chat);
+  assert.equal(await handleEvent({ type: 'message', source: { type: 'group', groupId: 'C' }, message: { type: 'text', text: '3ตัวบอน' } }, 'https://x', normalizeSettings({ commands: false })), null);
+});

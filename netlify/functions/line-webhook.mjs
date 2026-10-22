@@ -3,7 +3,7 @@
 import { verifySignature, reply, markAsRead } from '../lib/line.mjs';
 import { loadDraws } from '../lib/data.mjs';
 import { picksMessage, resultMessage, checkText, twoDigitMessage, threeDigitMessage, floatMessage, ticketCheckMessage, drawQuickReply, luckyDayMessage, birthMonthMessage, birthYearMessage, newsMessage, dreamMessage, probabilityMessage, PROB_COMMAND_KIND, BIRTH_HELP, TICKET_HELP, HELP_TEXT } from '../../src/lib/line-messages.js';
-import { getSettings, recordActivity } from '../lib/settings.mjs';
+import { getSettings, recordActivity, getActivity } from '../lib/settings.mjs';
 import { loadNews } from '../lib/news.mjs';
 import { parseNumbers } from '../../src/lib/ticket-check.js';
 import { parseDay, dayOf, bareDay } from '../../src/lib/lucky-day.js';
@@ -43,11 +43,51 @@ export function cleanCommand(message) {
 // หลายบรรทัดในข้อความเดียว เช่น "3ตัวหน้า⏎3ตัวท้าย⏎3ตัวบน" → ตอบทุกบรรทัด
 // LINE ตอบได้ครั้งละไม่เกิน 5 ข้อความ จึงรวมการ์ดเป็น carousel (ไม่เกิน 12 การ์ดต่อข้อความ)
 const MAX_LINES = 12;
+// คำสั่งที่ใช้แนะนำเมื่อพิมพ์ผิด
+const KNOWN_COMMANDS = ['เลขเด็ด', 'เลข2ตัว', 'เลข3ตัว', 'เลขลอย', 'เลขลอยบน', 'เลขลอยล่าง', '3ตัวหน้า', '3ตัวท้าย', '3ตัวบน',
+  '2ตัวบน', '2ตัวล่าง', '4ตัวบน', '5ตัวบน', 'ผลหวย', 'ตรวจรางวัล', 'เลขประจำวัน', 'เลขเดือนเกิด', 'เลขปีเกิด', 'ทำนายฝัน', 'ข่าวดัง', 'คำสั่ง'];
+const POPULAR = ['เลขเด็ด', 'ผลหวย', 'ตรวจรางวัล', '3ตัวบน', '2ตัวล่าง', 'เลขลอย', 'ทำนายฝัน', 'คำสั่ง'];
+const editDistance = (a, b) => {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...new Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  }
+  return d[a.length][b.length];
+};
+export function suggestCommand(compact) {
+  const best = KNOWN_COMMANDS.map((c) => [c, editDistance(compact, c)]).sort((x, y) => x[1] - y[1])[0];
+  return best && best[1] <= Math.max(1, Math.floor(best[0].length / 3)) ? best[0] : null;
+}
+// ข้อความที่ "ดูเหมือนตั้งใจสั่ง bot" แต่ไม่รู้จัก: แท็กถึง bot หรือขึ้นต้นด้วยคำที่ใช้กับคำสั่ง หรือใกล้เคียงคำสั่งจริง
+// (แชตทั่วไปในกลุ่มจะไม่ถูกตอบ)
+export function looksLikeCommand(ev, compact) {
+  if (ev.message?.mention?.mentionees?.some((m) => m.isSelf)) return true;
+  return /^(?:เลข|ตรวจ|ทำนาย|หวย|ผลหวย|งวด|ลอย|เช็ค|ข่าว|[2-6]ตัว)/.test(compact) || Boolean(suggestCommand(compact));
+}
+function unknownReply(compact) {
+  const guess = suggestCommand(compact);
+  const shown = compact.length > 20 ? `${compact.slice(0, 20)}…` : compact;
+  return [{
+    type: 'text',
+    text: `ขออภัย ไม่พบคำสั่ง "${shown}"${guess ? `\nหมายถึง "${guess}" ใช่ไหม? กดปุ่มด้านล่างได้เลย` : ''}\nพิมพ์ "คำสั่ง" เพื่อดูคำสั่งทั้งหมด`,
+    quickReply: { items: [...new Set([guess, ...POPULAR].filter(Boolean))].slice(0, 13)
+      .map((t) => ({ type: 'action', action: { type: 'message', label: t, text: t } })) },
+  }];
+}
+
 export async function handleEvent(ev, siteUrl, settings = null) {
   const single = await handleSingle(ev, siteUrl, settings);
   if (single || ev.type !== 'message' || ev.message?.type !== 'text') return single;
+  settings ??= await getSettings();
+  if (!settings.commands) return null;
   const lines = cleanCommand(ev.message).split(/\n+/).map((l) => l.trim()).filter(Boolean);
-  if (lines.length < 2) return null;
+  if (lines.length < 2) {
+    const compact = (lines[0] ?? '').replace(/\s+/g, '');
+    if (!compact || !looksLikeCommand(ev, compact)) return null;
+    await recordUnknown(compact);
+    return unknownReply(compact);
+  }
   settings ??= await getSettings();
   const out = [];
   for (const line of lines.slice(0, MAX_LINES)) {
@@ -55,6 +95,13 @@ export async function handleEvent(ev, siteUrl, settings = null) {
     if (r) out.push(...r);
   }
   return out.length ? packMessages(out) : null;
+}
+
+// เก็บข้อความที่ bot ไม่เข้าใจล่าสุด 10 รายการ ให้ผู้ดูแลเห็นในหน้า Admin
+async function recordUnknown(text) {
+  const { unknown } = await getActivity();
+  const list = [{ text: text.slice(0, 40), at: new Date().toISOString() }, ...(unknown?.list ?? [])].slice(0, 10);
+  await recordActivity('unknown', { list });
 }
 
 function packMessages(msgs) {

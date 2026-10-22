@@ -775,3 +775,11 @@ html, body { overflow-x: clip; }
 @media (max-width: 900px) { .status-list { grid-template-columns: 1fr; } }
 .k-top { min-width: 0; }
 .kpi .k-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.unknown-box { margin-top: 18px; padding: 16px 18px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); }
+.unknown-box h4 { margin: 0; font: 600 15px var(--sans); }
+.unknown-box .note { margin: 2px 0 10px; }
+.unknown-box ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.unknown-box li { display: inline-flex; align-items: baseline; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #fff; border: 1px solid var(--line-strong); }
+.unknown-box li b { font-weight: 600; font-size: 13.5px; }
+.unknown-box li small { color: var(--faint); font-size: 11.5px; }
+.unknown-box .empty { margin: 0; color: var(--faint); font-size: 13px; }

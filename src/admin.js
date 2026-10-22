@@ -145,6 +145,14 @@ function renderStatus() {
       <div class="st-main"><b>${r.title}</b><small>${r.detail}</small></div>
       <span class="st-badge">${r.value}</span>
     </li>`).join('');
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const unknown = dash.status.activity.unknown?.list ?? [];
+  $('#status-unknown').innerHTML = `
+    <h4>ข้อความที่ Bot ไม่เข้าใจล่าสุด</h4>
+    <p class="note">Bot ตอบกลับพร้อมแนะนำคำสั่งที่ใกล้เคียงแล้ว · หากพบคำที่ผู้ใช้พิมพ์บ่อย สามารถเพิ่มเป็นคำสั่งได้</p>
+    ${unknown.length
+    ? `<ul>${unknown.map((u) => `<li><b>${esc(u.text)}</b><small>${fmtTime(u.at)}</small></li>`).join('')}</ul>`
+    : '<p class="empty">ยังไม่มีข้อความที่ Bot ไม่เข้าใจ</p>'}`;
   if (changed) renderDash();
 }
 async function loadStatus() {
