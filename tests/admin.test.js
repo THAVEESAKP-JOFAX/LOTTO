@@ -307,3 +307,13 @@ test('LINE ถูกรางวัล: แบนเนอร์ทองพร�
   const lose = JSON.stringify(ticketCheckMessage(draws, ['999999'].filter((n) => n !== last.first), null, 'https://site.test').contents);
   assert.doesNotMatch(lose, /trophy/);
 });
+
+test('คำสั่งที่มี @mention bot หรือคำลงท้ายสุภาพ ยังตอบได้', async () => {
+  const { cleanCommand } = await import('../netlify/functions/line-webhook.mjs');
+  assert.equal(cleanCommand({ text: '@LOTTO-THAI 3ตัวบน', mention: { mentionees: [{ index: 0, length: 11 }] } }), '3ตัวบน');
+  assert.equal(cleanCommand({ text: '@บอท เลขเด็ดครับ' }), 'เลขเด็ด');
+  assert.equal(cleanCommand({ text: 'ฝันเห็นหมอค่ะ' }), 'ฝันเห็นหมอ');
+  assert.equal(cleanCommand({ text: 'เลขเด็ด?' }), 'เลขเด็ด');
+  assert.equal(cleanCommand({ text: '2ตัวล่าง หน่อยครับ' }), '2ตัวล่าง');
+  assert.equal(cleanCommand({ text: 'ตรวจรางวัล 011781' }), 'ตรวจรางวัล 011781');
+});

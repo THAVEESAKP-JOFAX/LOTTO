@@ -23,13 +23,30 @@ const NEXT_DRAW_COMMANDS = [
   [/^(เลขลอย|ลอย|เลขวิ่ง|วิ่ง)$/, (date, draws, s) => [floatMessage('top', date, draws, s), floatMessage('bottom', date, draws, s)]],
 ];
 
+// ทำข้อความให้เป็นคำสั่งล้วน: ตัด @mention ถึง bot, อักขระล่องหน, คำลงท้ายสุภาพ และเครื่องหมายท้ายประโยค
+// เช่น "@LOTTO-THAI 3ตัวบนครับ" → "3ตัวบน"
+export function cleanCommand(message) {
+  let t = String(message.text ?? '');
+  // ตัดช่วงที่เป็น mention ตามตำแหน่งที่ LINE ส่งมา (ไล่จากท้ายเพื่อไม่ให้ index เลื่อน)
+  const mentions = [...(message.mention?.mentionees ?? [])].sort((a, b) => b.index - a.index);
+  for (const m of mentions) t = t.slice(0, m.index) + t.slice(m.index + m.length);
+  return t
+    .replace(/[\u200b-\u200d\ufeff]/g, '')
+    .replace(/^\s*@\S+\s+/, '')
+    .trim()
+    .replace(/[\s!?.。~…]+$/, '')
+    .replace(/\s*(?:ครับผม|ครับ|คับ|ค่ะ|คะ|ค่า|จ้า|จ้ะ|จ๊ะ|นะคะ|นะครับ|หน่อย|ด้วย|นะ)+$/, '')
+    .trim()
+    .toLowerCase();
+}
+
 export async function handleEvent(ev, siteUrl, settings = null) {
   const groupId = ev.source?.groupId;
   if (ev.type === 'join' && groupId) {
     return [{ type: 'text', text: `สวัสดีครับ 🧠 LOTTO-THAI เข้ากลุ่มแล้ว\nGroup ID: ${groupId}\nนำค่านี้ไปใส่ใน LINE_GROUP_IDS บน Netlify เพื่อรับแจ้งเตือนอัตโนมัติ\n\n${HELP_TEXT}` }];
   }
   if (ev.type !== 'message' || ev.message?.type !== 'text') return null;
-  const cmd = ev.message.text.trim().toLowerCase();
+  const cmd = cleanCommand(ev.message);
   if (/^(groupid|group id|ไอดีกลุ่ม)$/.test(cmd)) {
     return [{ type: 'text', text: groupId ? `Group ID: ${groupId}` : 'คำสั่งนี้ใช้ได้ในกลุ่มเท่านั้น' }];
   }
@@ -136,7 +153,9 @@ export default async (req, context) => {
       try {
         const messages = await handleEvent(ev, process.env.URL);
         // log เฉพาะชนิดเหตุการณ์และผลลัพธ์ ไว้ไล่ปัญหาใน Netlify → Logs → Functions
-        console.log(`line-webhook ${ev.type}/${ev.message?.type ?? '-'} from ${ev.source?.type ?? '-'} → ${messages ? `reply ${messages.length} msg` : 'no reply (ไม่ใช่คำสั่ง)'}`);
+        // ข้อความที่ไม่ใช่คำสั่ง: log 20 ตัวอักษรแรก ไว้ดูว่าผู้ใช้พิมพ์แบบไหนที่ bot ยังไม่รู้จัก
+        const preview = !messages && ev.message?.type === 'text' ? ` "${cleanCommand(ev.message).slice(0, 20)}"` : '';
+        console.log(`line-webhook ${ev.type}/${ev.message?.type ?? '-'} from ${ev.source?.type ?? '-'} → ${messages ? `reply ${messages.length} msg` : `no reply (ไม่ใช่คำสั่ง)${preview}`}`);
         if (messages && ev.replyToken) {
           await reply(ev.replyToken, messages);
           console.log('line-webhook reply sent');
