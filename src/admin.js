@@ -1,7 +1,7 @@
 // หน้า Admin: เข้าสู่ระบบ → ตั้งค่า bot, ส่ง Alert LINE, Bot / ทดสอบเลข / Backtest
 import './styles.css';
 import { $, load, scrollSpy, renderBots, runBot, renderChecker, renderBacktest } from './app.js';
-import { upcomingDraw, todayInThailand } from './lib/schedule.js';
+import { upcomingDraw, todayInThailand, nextDrawDate as nextDrawAfter } from './lib/schedule.js';
 import { BOTS } from './lib/bots.js';
 
 const TOKEN_KEY = 'lotto-admin-token';
@@ -60,7 +60,7 @@ function readSettings(form) {
 }
 
 // ---------- ภาพรวมระบบ ----------
-const dash = { draws: null, settings: null };
+const dash = { draws: null, settings: null, status: null, summary: null };
 const thDate = (iso, opts = { day: 'numeric', month: 'long', year: 'numeric' }) =>
   new Intl.DateTimeFormat('th-TH', { ...opts, timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
 function renderDash() {
@@ -71,14 +71,89 @@ function renderDash() {
   const next = upcomingDraw(last.date, today);
   const days = Math.round((Date.parse(next) - Date.parse(today)) / 864e5);
   const bot = settings && BOTS.find((b) => b.id === settings.botId);
-  const pill = (on, label) => `<span class="state ${on ? 'on' : 'off'}">${label}: ${on ? 'เปิด' : 'ปิด'}</span>`;
   $('#dash-cards').innerHTML = `
     <div class="dash-card feature"><span>ผลสลากงวดล่าสุด</span><b class="dash-num">${last.first}</b><small>งวดวันที่ ${thDate(last.date)} · ข้อมูล ${draws.length} งวด</small></div>
     <div class="dash-card"><span>งวดถัดไป</span><b>${thDate(next, { day: 'numeric', month: 'short', year: '2-digit' })}</b><small>${days <= 0 ? 'ออกรางวัลวันนี้' : `อีก ${days} วัน`}</small></div>
     <div class="dash-card"><span>สูตรวิเคราะห์ที่ใช้</span><b>${bot ? bot.name : '—'}</b><small>ใช้กับชุดตัวเลขที่ส่งเข้า LINE</small></div>
-    <div class="dash-card"><span>สถานะระบบ</span><div class="states">${settings
-    ? pill(settings.autoPicks, 'ส่งเลขอัตโนมัติ') + pill(settings.autoResult, 'ประกาศผล') + pill(settings.commands, 'ตอบคำสั่ง')
-    : '<small>กำลังโหลด…</small>'}</div></div>`;
+    <div class="dash-card"><span>สถานะโดยรวม</span>${dash.summary
+    ? `<b class="overall-text ${dash.summary.level}">${dash.summary.text}</b><small>${dash.summary.detail}</small>`
+    : '<small>กำลังตรวจสอบ…</small>'}</div>`;
+  renderStatus();
+}
+
+// ---------- สถานะการทำงานของ Bot ----------
+const fmtTime = (iso) => new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }).format(new Date(iso));
+const LEVEL_TEXT = { ok: 'ปกติ', warn: 'ควรตรวจสอบ', error: 'ขัดข้อง', off: 'ปิดใช้งาน' };
+function lastRun(a, empty = 'ยังไม่มีประวัติการทำงาน') {
+  if (!a) return { text: empty, failed: false };
+  return a.ok
+    ? { text: `ทำงานล่าสุด ${fmtTime(a.at)}${a.groups !== undefined ? ` · ส่งถึง ${a.groups} กลุ่ม` : ''}`, failed: false }
+    : { text: `ล้มเหลวเมื่อ ${fmtTime(a.at)} · ${a.error ?? 'ไม่ทราบสาเหตุ'}`, failed: true };
+}
+function statusRows() {
+  const { status: st, draws } = dash;
+  if (!st || !draws) return null;
+  const { line, settings, activity } = st;
+  const today = todayInThailand();
+  const last = draws.at(-1);
+  const next = upcomingDraw(last.date, today);
+  const nextText = thDate(next, { day: 'numeric', month: 'short', year: '2-digit' });
+  const lineReady = line.token && line.secret;
+  const missing = [!line.token && 'Channel access token', !line.secret && 'Channel secret'].filter(Boolean).join(' และ ');
+  const auto = (on, a, schedule) => {
+    if (!on) return { level: 'off', value: 'ปิดใช้งาน', detail: 'เปิดได้ที่ส่วนการตั้งค่าระบบ' };
+    const r = lastRun(a);
+    return { level: !lineReady || r.failed ? 'error' : 'ok', value: r.failed ? 'ส่งไม่สำเร็จ' : 'เปิดใช้งาน', detail: `${schedule} · ${r.text}` };
+  };
+  const reply = lastRun(activity.reply, 'ยังไม่มีการตอบคำสั่ง');
+  const manual = lastRun(activity.manual, 'ยังไม่เคยส่งจากหน้านี้');
+  // ผลงวดควรมาหลังวันออกรางวัลไม่เกิน 1 วัน
+  const stale = Date.parse(today) - Date.parse(nextDrawAfter(last.date)) > 864e5;
+  return [
+    { title: 'การเชื่อมต่อ LINE', level: lineReady ? 'ok' : 'error', value: lineReady ? 'พร้อมใช้งาน' : 'ยังไม่พร้อม',
+      detail: lineReady ? 'ตั้งค่า Channel access token และ Channel secret เรียบร้อยแล้ว' : `ยังไม่ได้กำหนด ${missing} ใน Netlify` },
+    { title: 'กลุ่มที่รับการแจ้งเตือน', level: line.groups ? 'ok' : 'warn', value: line.groups ? `${line.groups} กลุ่ม` : 'ยังไม่ได้กำหนด',
+      detail: line.groups ? 'กำหนดไว้ใน LINE_GROUP_IDS' : 'เพิ่ม Group ID ใน LINE_GROUP_IDS เพื่อรับการแจ้งเตือนอัตโนมัติ' },
+    { title: 'ส่งชุดตัวเลขแนะนำอัตโนมัติ', ...auto(settings.autoPicks, activity.picks, `รอบถัดไป ${nextText} เวลา 09:00 น.`) },
+    { title: 'ประกาศผลรางวัลอัตโนมัติ', ...auto(settings.autoResult, activity.result, `รอบถัดไป ${nextText} ช่วง 15:30–18:30 น.`) },
+    settings.commands
+      ? { title: 'ตอบกลับคำสั่งในกลุ่ม', level: !lineReady || reply.failed ? 'error' : 'ok', value: reply.failed ? 'ตอบกลับไม่สำเร็จ' : 'เปิดใช้งาน', detail: reply.text }
+      : { title: 'ตอบกลับคำสั่งในกลุ่ม', level: 'off', value: 'ปิดใช้งาน', detail: 'bot จะไม่ตอบคำสั่งในกลุ่ม (ยกเว้น groupid)' },
+    { title: 'ข้อมูลผลรางวัล', level: stale ? 'warn' : 'ok', value: stale ? 'รออัปเดต' : 'เป็นปัจจุบัน',
+      detail: `งวดล่าสุด ${thDate(last.date)} · ${draws.length} งวด${stale ? ' · ยังไม่พบผลงวดถัดไปจากแหล่งข้อมูล' : ''}` },
+    { title: 'การส่งข้อความด้วยตนเอง', level: manual.failed ? 'warn' : 'ok', value: manual.failed ? 'ครั้งล่าสุดไม่สำเร็จ' : 'พร้อมใช้งาน', detail: manual.text },
+  ];
+}
+function renderStatus() {
+  const rows = statusRows();
+  if (!rows) return;
+  const bad = rows.filter((r) => r.level === 'error').length;
+  const warn = rows.filter((r) => r.level === 'warn').length;
+  const summary = bad
+    ? { level: 'error', text: 'พบปัญหา', detail: `${bad} รายการขัดข้อง${warn ? ` · ${warn} รายการควรตรวจสอบ` : ''}` }
+    : warn
+      ? { level: 'warn', text: 'ควรตรวจสอบ', detail: `${warn} รายการควรตรวจสอบ` }
+      : { level: 'ok', text: 'ทำงานปกติ', detail: 'ทุกระบบพร้อมใช้งาน' };
+  const changed = dash.summary?.text !== summary.text;
+  dash.summary = summary;
+  $('#status-overall').className = `overall ${summary.level}`;
+  $('#status-overall').textContent = summary.text;
+  $('#status-checked').textContent = `ตรวจสอบล่าสุด ${fmtTime(dash.status.now)}`;
+  $('#status-list').innerHTML = rows.map((r) => `
+    <li class="st-row ${r.level}">
+      <span class="st-dot" aria-hidden="true"></span>
+      <div class="st-main"><b>${r.title}</b><small>${r.detail}</small></div>
+      <span class="st-badge">${r.value}</span>
+    </li>`).join('');
+  if (changed) renderDash();
+}
+async function loadStatus() {
+  try {
+    dash.status = await api('/api/admin/status');
+    renderStatus();
+  } catch (err) {
+    $('#status-checked').textContent = `✗ ตรวจสอบสถานะไม่สำเร็จ: ${err.message}`;
+  }
 }
 
 let settingsBound = false;
@@ -104,6 +179,7 @@ async function initSettings() {
       fillSettings(form, dash.settings);
       renderDash();
       status.textContent = '✓ บันทึกการตั้งค่าเรียบร้อยแล้ว มีผลทันที';
+      loadStatus();
     } catch (err) {
       status.textContent = `✗ ${err.message}`;
     }
@@ -121,8 +197,10 @@ function initLine() {
     try {
       const data = await api('/api/line/send', { method: 'POST', body: JSON.stringify({ type: b.dataset.type }) });
       status.textContent = `✓ ส่งข้อความเข้า ${data.groups} กลุ่มเรียบร้อยแล้ว`;
+      loadStatus();
     } catch (err) {
       status.textContent = `✗ ${err.message}`;
+      loadStatus();
     } finally {
       b.disabled = false;
     }
@@ -141,6 +219,8 @@ async function showAdmin() {
   initLine();
   $('#admin-date').textContent = new Intl.DateTimeFormat('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Bangkok' }).format(new Date());
   scrollSpy('.side-nav');
+  loadStatus();
+  $('#status-refresh').addEventListener('click', loadStatus);
   const { draws, backtest } = await load();
   dash.draws = draws;
   renderDash();

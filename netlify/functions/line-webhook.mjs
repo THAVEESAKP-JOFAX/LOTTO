@@ -3,7 +3,7 @@
 import { verifySignature, reply, markAsRead } from '../lib/line.mjs';
 import { loadDraws } from '../lib/data.mjs';
 import { picksMessage, resultMessage, checkText, twoDigitMessage, threeDigitMessage, floatMessage, ticketCheckMessage, drawQuickReply, luckyDayMessage, birthMonthMessage, birthYearMessage, newsMessage, dreamMessage, probabilityMessage, PROB_COMMAND_KIND, BIRTH_HELP, TICKET_HELP, HELP_TEXT } from '../../src/lib/line-messages.js';
-import { getSettings } from '../lib/settings.mjs';
+import { getSettings, recordActivity } from '../lib/settings.mjs';
 import { loadNews } from '../lib/news.mjs';
 import { parseNumbers } from '../../src/lib/ticket-check.js';
 import { parseDay, dayOf, bareDay } from '../../src/lib/lucky-day.js';
@@ -140,9 +140,11 @@ export default async (req, context) => {
         if (messages && ev.replyToken) {
           await reply(ev.replyToken, messages);
           console.log('line-webhook reply sent');
+          await recordActivity('reply', { ok: true });
         }
       } catch (err) {
         console.error('line-webhook', err);
+        await recordActivity('reply', { ok: false, error: String(err.message).slice(0, 200) });
       }
     }
   })();

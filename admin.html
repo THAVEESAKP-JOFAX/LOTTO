@@ -72,6 +72,18 @@
       </header>
       <div class="dash-cards" id="dash-cards"></div>
 
+      <section class="card status-panel" id="bot-status" aria-live="polite">
+        <div class="status-head">
+          <div>
+            <h3>สถานะการทำงานของ Bot</h3>
+            <p class="note" id="status-checked">กำลังตรวจสอบสถานะ…</p>
+          </div>
+          <span class="overall" id="status-overall"></span>
+          <button class="btn btn-ghost btn-sm" type="button" id="status-refresh">ตรวจสอบอีกครั้ง</button>
+        </div>
+        <ul class="status-list" id="status-list"></ul>
+      </section>
+
       <section id="settings" class="section">
         <div class="section-head">
           <p class="eyebrow">การตั้งค่าระบบ</p>

@@ -27,3 +27,21 @@ export async function saveSettings(patch) {
   await store().setJSON(KEY, next);
   return next;
 }
+
+// บันทึกการทำงานล่าสุดของ bot (แสดงในหน้า Admin) — เขียนไม่สำเร็จก็ไม่ทำให้การส่งข้อความล้ม
+const ACTIVITY_KEY = 'bot-activity';
+export async function getActivity() {
+  try {
+    return (await store().get(ACTIVITY_KEY, { type: 'json' })) ?? {};
+  } catch {
+    return {};
+  }
+}
+export async function recordActivity(kind, data = {}) {
+  try {
+    const current = await getActivity();
+    await store().setJSON(ACTIVITY_KEY, { ...current, [kind]: { at: new Date().toISOString(), ...data } });
+  } catch (err) {
+    console.error('activity', err.message);
+  }
+}

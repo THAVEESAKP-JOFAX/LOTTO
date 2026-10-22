@@ -273,3 +273,22 @@ test('คำสั่งความน่าจะเป็น: 3ตัวห�
     assert.match((await ask('5ตัวบน'))[0].altText, /1 ใน 100,000/);
   } finally { globalThis.fetch = realFetch; }
 });
+
+test('/api/admin/status: บอกว่าตั้งค่า LINE แล้วหรือยัง (ไม่ส่งค่าลับ) และประวัติการทำงาน', async () => {
+  const { default: status } = await import('../netlify/functions/admin-status.mjs');
+  const { recordActivity } = await import('../netlify/lib/settings.mjs');
+  const env = { ...process.env };
+  process.env.LINE_CHANNEL_ACCESS_TOKEN = 'secret-token-value';
+  process.env.LINE_CHANNEL_SECRET = 'secret-value';
+  process.env.LINE_GROUP_IDS = 'Ca, Cb';
+  process.env.ALERT_ADMIN_KEY = 'k';
+  try {
+    assert.equal((await status(new Request('https://x/api/admin/status'))).status, 401);
+    await recordActivity('picks', { ok: true, date: '2026-11-01', groups: 2 });
+    const res = await status(new Request('https://x/api/admin/status', { headers: { 'x-admin-key': 'k' } }));
+    const body = await res.json();
+    assert.deepEqual(body.line, { token: true, secret: true, groups: 2 });
+    assert.equal(body.activity.picks.groups, 2);
+    assert.doesNotMatch(JSON.stringify(body), /secret-token-value|secret-value/);
+  } finally { process.env = env; }
+});

@@ -2,7 +2,7 @@
 import { pushToGroups } from '../lib/line.mjs';
 import { loadDraws } from '../lib/data.mjs';
 import { isAuthorized, json } from '../lib/auth.mjs';
-import { getSettings } from '../lib/settings.mjs';
+import { getSettings, recordActivity } from '../lib/settings.mjs';
 import { picksMessage, resultMessage } from '../../src/lib/line-messages.js';
 import { upcomingDraw, todayInThailand } from '../../src/lib/schedule.js';
 
@@ -17,11 +17,13 @@ export default async (req) => {
     let message;
     if (type === 'picks') message = picksMessage(upcomingDraw(draws.at(-1).date, todayInThailand()), draws, process.env.URL, settings);
     else if (type === 'result') message = resultMessage(draws.at(-1), draws, process.env.URL, settings);
-    else if (type === 'test') message = { type: 'text', text: '✅ ทดสอบการเชื่อมต่อ LOTTO Analytics → LINE สำเร็จ' };
+    else if (type === 'test') message = { type: 'text', text: '✅ ทดสอบการเชื่อมต่อ LOTTO-THAI → LINE สำเร็จ' };
     else return json({ error: 'type ต้องเป็น picks, result หรือ test' }, 400);
     const groups = await pushToGroups(message);
+    await recordActivity('manual', { ok: true, type, groups });
     return json({ ok: true, groups });
   } catch (err) {
+    await recordActivity('manual', { ok: false, type, error: err.message });
     return json({ error: err.message }, 500);
   }
 };
