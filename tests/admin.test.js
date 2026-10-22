@@ -390,3 +390,29 @@ test('Rich Menu 3×2 ครอบเต็มรูป และ "คำสั�
   assert.ok(r[0].quickReply.items.length >= 10 && r[0].quickReply.items.length <= 13);
   assert.ok(r[0].quickReply.items.some((i) => i.action.text === '3ตัวบน'));
 });
+
+test('/api/admin/rich-menu: ต้องเข้าสู่ระบบ และติดตั้งผ่าน LINE API ด้วย token ใน Netlify', async () => {
+  const { default: fn } = await import('../netlify/functions/admin-rich-menu.mjs');
+  const env = { ...process.env };
+  const realFetch = globalThis.fetch;
+  const calls = [];
+  process.env.ALERT_ADMIN_KEY = 'k';
+  process.env.LINE_CHANNEL_ACCESS_TOKEN = 'tok';
+  process.env.URL = 'https://rm.test';
+  globalThis.fetch = async (url, opts = {}) => {
+    calls.push(`${opts.method ?? 'GET'} ${url}`);
+    if (String(url).endsWith('/line/rich-menu.jpg')) return new Response(new Uint8Array([1, 2, 3]));
+    if (String(url).endsWith('/richmenu/list')) return new Response(JSON.stringify({ richmenus: [{ name: 'LOTTO-THAI menu', richMenuId: 'old' }] }));
+    if (String(url).endsWith('/v2/bot/richmenu')) return new Response(JSON.stringify({ richMenuId: 'new1' }));
+    return new Response('{}');
+  };
+  try {
+    assert.equal((await fn(new Request('https://rm.test/api/admin/rich-menu', { method: 'POST' }))).status, 401);
+    const res = await fn(new Request('https://rm.test/api/admin/rich-menu', { method: 'POST', headers: { 'x-admin-key': 'k' } }));
+    const body = await res.json();
+    assert.equal(body.richMenuId, 'new1');
+    assert.deepEqual(body.removed, ['old']);
+    assert.ok(calls.includes('POST https://api.line.me/v2/bot/user/all/richmenu/new1'));
+    assert.ok(calls.includes('POST https://api-data.line.me/v2/bot/richmenu/new1/content'));
+  } finally { globalThis.fetch = realFetch; process.env = env; }
+});

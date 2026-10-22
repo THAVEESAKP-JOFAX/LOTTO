@@ -217,6 +217,8 @@ async function initSettings() {
 // ---------- ส่ง Alert LINE ----------
 function initLine() {
   document.querySelector('.line-actions').addEventListener('click', async (e) => {
+    const rm = e.target.closest('button[data-action="rich-menu"]');
+    if (rm) return installMenu(rm);
     const b = e.target.closest('button[data-type]');
     if (!b) return;
     const status = $('#line-status');
@@ -233,6 +235,20 @@ function initLine() {
       b.disabled = false;
     }
   });
+}
+
+async function installMenu(b) {
+  const status = $('#line-status');
+  b.disabled = true;
+  status.textContent = 'กำลังติดตั้งเมนู LINE…';
+  try {
+    await api('/api/admin/rich-menu', { method: 'POST', body: '{}' });
+    status.textContent = '✓ ติดตั้งเมนู LINE เรียบร้อยแล้ว เปิดแชต 1:1 กับ bot เพื่อดูเมนู (ในกลุ่มให้พิมพ์ "คำสั่ง")';
+  } catch (err) {
+    status.textContent = `✗ ${err.message}`;
+  } finally {
+    b.disabled = false;
+  }
 }
 
 // ---------- เข้าสู่ระบบ ----------

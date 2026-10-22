@@ -78,7 +78,9 @@ LINE_CHANNEL_ACCESS_TOKEN=xxx LINE_GROUP_IDS=Cxxx npm run bot:test -- --send   #
 
 รูปเมนู: `brand/line-rich-menu.jpg` (2500 × 1686 · ปุ่ม เลขเด็ด / ผลหวย / ตรวจรางวัล / 3ตัวบน / ทำนายฝัน / คำสั่ง)
 
-**วิธีที่ 1 — สคริปต์ (แนะนำ)** รันในเครื่องตัวเอง ใช้ token เดียวกับใน Netlify (ห้ามส่ง token ในแชต)
+**วิธีที่ 1 — กดปุ่มในหน้า Admin (ง่ายที่สุด)** /admin → การแจ้งเตือน LINE → **ติดตั้งเมนู LINE** (ใช้ token ที่ตั้งไว้ใน Netlify)
+
+**วิธีที่ 1.1 — สคริปต์** รันในเครื่องตัวเอง ใช้ token เดียวกับใน Netlify (ห้ามส่ง token ในแชต)
 ```bash
 LINE_CHANNEL_ACCESS_TOKEN=xxx npm run rich-menu        # ติดตั้ง + ตั้งเป็นเมนูหลักให้ทุกคน (ลบเมนูเดิมของ LOTTO-THAI ให้ก่อน)
 npm run rich-menu -- --dry-run                          # ดูข้อมูลเมนูโดยไม่ส่งไป LINE
