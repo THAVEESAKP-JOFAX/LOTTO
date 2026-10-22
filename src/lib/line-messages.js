@@ -240,7 +240,7 @@ export function newsMessage(items, when = '') {
     row('เลขเด่น', r.main.join('  '), { color: C.hi, size: 'xl' }),
     ...(r.two.length ? [row('เลข 2 ตัว', r.two.join('  '), { color: C.hi })] : []),
     ...(r.three.length ? [row('เลข 3 ตัว', r.three.join('  '))] : []),
-    text(`ตีจากตัวเลขในหัวข้อข่าวเด่น ${r.scanned} ข่าว (Google News) · ไม่นับเลขปี · เพื่อความบันเทิง`, { size: 'xxs', color: C.muted, margin: 'md' }),
+    text(`ตีจากตัวเลขในหัวข้อข่าวเด่น ${r.scanned} ข่าว (Google News) · ไม่นับเลขปี`, { size: 'xxs', color: C.muted, margin: 'md' }),
   ];
   const alt = `เลขจากข่าวดัง\nเลขเด่น ${r.main.join(' ')}\n2 ตัว: ${r.two.join(' ')}${r.three.length ? `\n3 ตัว: ${r.three.join(' ')}` : ''}`;
   return flex(alt, bubble(when ? `ข่าวเด่นล่าสุด · ${when}` : 'ข่าวเด่นล่าสุด', body, 'เลขเด็ดจากข่าวดัง'));
@@ -275,7 +275,7 @@ export function dreamMessage(input) {
     row('เลขเด่น', r.main.join('  '), { color: C.hi, size: 'xl' }),
     row('เลข 2 ตัว', r.two.join('  '), { color: C.hi }),
     row('เลข 3 ตัว', r.three.join('  ')),
-    text(`คำนวณจากค่าตัวอักษร (เลขศาสตร์) ของ "${r.subject}" ผลรวม ${r.total} · ตามความเชื่อ เพื่อความบันเทิง`, { size: 'xxs', color: C.muted, margin: 'md' }),
+    text(`คำนวณจากค่าตัวอักษร (เลขศาสตร์) ของ "${r.subject}" ผลรวม ${r.total}`, { size: 'xxs', color: C.muted, margin: 'md' }),
   ];
   const alt = `ทำนายฝัน: ${r.subject}\n${r.found.map((d) => `${d.title}: ${d.meaning}`).join('\n') || 'คำนวณเลขจากความฝัน'}\nเลขเด่น ${r.main.join(' ')}\n2 ตัว: ${r.two.join(' ')}\n3 ตัว: ${r.three.join(' ')}`;
   return { ...flex(alt, bubble(`ฝัน: ${r.subject}`, body, 'ทำนายฝัน')), quickReply: dreamQuickReply(r.found[0]?.title) };
