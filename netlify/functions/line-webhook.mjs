@@ -91,12 +91,12 @@ export async function handleEvent(ev, siteUrl, settings = null) {
         return [{ type: 'text', text: 'ไม่พบผลของงวดที่ระบุ เลือกงวดจากปุ่มด้านล่างได้เลย', quickReply: drawQuickReply(draws, tickets, null) }];
       }
     }
-    return [ticketCheckMessage(draws, tickets, date)];
+    return [ticketCheckMessage(draws, tickets, date, siteUrl)];
   }
   // พิมพ์เลขสลาก 6 หลักอย่างเดียว (1 ใบหรือหลายใบ) → ตรวจกับงวดล่าสุด
   if (/^[0-9๐-๙]{6}(?:[\s,]+[0-9๐-๙]{6})*$/.test(cmd)) {
     const draws = await loadDraws(siteUrl);
-    return [ticketCheckMessage(draws, parseNumbers(cmd))];
+    return [ticketCheckMessage(draws, parseNumbers(cmd), null, siteUrl)];
   }
   if (/^(ผลหวย|ผล|หวยออก|result)$/.test(cmd)) {
     const draws = await loadDraws(siteUrl);

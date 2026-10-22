@@ -56,6 +56,22 @@ const bubble = (subtitle, body, title) => ({
   },
 });
 const flex = (altText, contents) => ({ type: 'flex', altText: altText.slice(0, 400), contents });
+// แบนเนอร์สีทองเมื่อถูกรางวัล (ไอคอนถ้วยรางวัลโหลดจากเว็บ จึงต้องมี siteUrl)
+const GOLD = { top: '#fff4cc', bottom: '#ffc43d', ink: '#4d3400', sub: '#7a5600' };
+const winBanner = (title, sub, siteUrl) => ({
+  type: 'box', layout: 'horizontal', margin: 'lg', paddingAll: '12px', cornerRadius: '14px', spacing: 'md',
+  background: { type: 'linearGradient', angle: '135deg', startColor: GOLD.top, endColor: GOLD.bottom },
+  contents: [
+    ...(siteUrl ? [{ type: 'image', url: `${siteUrl.replace(/\/$/, '')}/line/trophy.png`, size: '52px', aspectRatio: '1:1', flex: 0 }] : []),
+    {
+      type: 'box', layout: 'vertical', justifyContent: 'center',
+      contents: [
+        text(title, { color: GOLD.ink, weight: 'bold', size: 'md' }),
+        text(sub, { color: GOLD.sub, size: 'xs', weight: 'bold' }),
+      ],
+    },
+  ],
+});
 
 // ข้อความเลขเด็ดก่อนออกรางวัล
 export function picksMessage(drawDate, draws, siteUrl, settings = DEFAULT_SETTINGS) {
@@ -119,18 +135,20 @@ export function drawQuickReply(draws, tickets, exclude, n = 6) {
 }
 
 // คำสั่ง "ตรวจรางวัล 011781 [งวด 16/10/69]"
-export function ticketCheckMessage(draws, tickets, date = null) {
+export function ticketCheckMessage(draws, tickets, date = null, siteUrl = '') {
   const r = checkTickets(draws, tickets, date);
   if (r.error) return { type: 'text', text: r.error };
   const lines = r.results.map((x) => ({
     type: 'box', layout: 'vertical', margin: 'md',
     contents: [
       text(x.number, { size: 'xl', weight: 'bold', color: x.amount ? C.hi : C.text }),
-      text(x.amount ? `🎉 ${x.prizes.join(' + ')} · ฿${x.amount.toLocaleString('th-TH')}` : 'ไม่ถูกรางวัล',
+      text(x.amount ? `ถูกรางวัล · ${x.prizes.join(' + ')} · ฿${x.amount.toLocaleString('th-TH')}` : 'ไม่ถูกรางวัล',
         { size: 'xs', color: x.amount ? C.good : C.muted }),
     ],
   }));
+  const wins = r.results.filter((x) => x.amount).length;
   const body = [
+    ...(r.total ? [winBanner('ขอแสดงความยินดี ถูกรางวัล', `${wins} ใบ · รวม ฿${r.total.toLocaleString('th-TH')}`, siteUrl)] : []),
     ...lines,
     { type: 'separator', margin: 'lg', color: C.line },
     text(r.total ? `รวมเงินรางวัล ฿${r.total.toLocaleString('th-TH')}` : `ตรวจ ${r.results.length} ใบ ไม่ถูกรางวัล`,
@@ -323,8 +341,9 @@ export function resultMessage(d, draws, siteUrl, settings = DEFAULT_SETTINGS) {
     row('เลขท้าย 3 ตัว', d.last3.join('  ')),
     row('เลขท้าย 2 ตัว', d.last2, { color: C.hi, size: 'lg' }),
     { type: 'separator', margin: 'lg', color: C.line },
-    text(any ? `✅ เลขจาก LOTTO-THAI ถูกรางวัล รวม ฿${money.toLocaleString('th-TH')}` : '❌ เลขจาก LOTTO-THAI ไม่ถูกรางวัล',
-      { margin: 'lg', weight: 'bold', color: any ? C.good : C.muted }),
+    any
+      ? winBanner('เลขจาก LOTTO-THAI ถูกรางวัล', `รวมเงินรางวัล ฿${money.toLocaleString('th-TH')}`, siteUrl)
+      : text('❌ เลขจาก LOTTO-THAI ไม่ถูกรางวัล', { margin: 'lg', weight: 'bold', color: C.muted }),
     text(`เลขที่แนะนำจาก LOTTO-THAI คือเลข ${picks.last2.join(' ')}${hit.last2.length ? ` (ถูก ${hit.last2.join(', ')})` : ''}`, { size: 'xs', color: C.muted }),
   ];
   const alt = `🏆 ผลสลาก ${thDate(d.date)}\nรางวัลที่ 1: ${d.first}\n3 ตัวหน้า: ${d.front3.join(' ')}\n` +
