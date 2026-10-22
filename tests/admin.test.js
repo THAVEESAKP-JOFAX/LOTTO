@@ -240,7 +240,7 @@ test('ทำนายฝัน: คำทำนาย + เลขที่คำ
   assert.deepEqual(dreamNumbers('งู').values, [2, 2]); // ง = 2, ู = 2
   assert.deepEqual(interpretDream('ฝันเห็นงู'), interpretDream('ทำนายฝัน งู')); // ฝันเดียวกันได้เลขเดิม
   assert.deepEqual(interpretDream('ฝันว่าไฟไหม้บ้าน').found.map((d) => d.title), ['ไฟไหม้', 'บ้าน']);
-  assert.deepEqual(interpretDream('ทำนายฝัน รถไฟ').found, []); // "ไฟ" ในรถไฟ ไม่ใช่ไฟไหม้
+  assert.deepEqual(interpretDream('ทำนายฝัน รถไฟ').found.map((d) => d.title), ['รถไฟ']); // "ไฟ" ในรถไฟ ไม่ใช่ไฟไหม้
   const { handleEvent } = await import('../netlify/functions/line-webhook.mjs');
   const ask = async (text) => handleEvent({ type: 'message', source: { type: 'group', groupId: 'C' }, message: { type: 'text', text } }, 'https://x', normalizeSettings({}));
   for (const c of ['ทำนายฝัน งู', 'ฝันเห็นช้างกับงู', 'ฝันว่าฟันหลุด', 'ทำนายฝัน รถไฟ', 'ทำนายฝัน']) {
@@ -351,4 +351,15 @@ test('ฝันเห็นสัตว์อะไรก็ได้ → มี
     assert.deepEqual(emptyTexts(dreamMessage(t)), [], t);
   }
   assert.doesNotMatch(JSON.stringify(dreamMessage('ทำนายฝัน รถไฟ').contents), /ยังไม่มีคำทำนาย/);
+});
+
+test('ฝันเห็นสิ่งไม่มีชีวิต → คำทำนายตามกลุ่มสิ่งของ และตีเป็นตัวเลข', async () => {
+  const { interpretDream } = await import('../src/lib/dream.js');
+  const r = (t) => interpretDream(t);
+  assert.match(r('ฝันเห็นรถไฟ').found[0].meaning, /ยานพาหนะ/);
+  assert.match(r('ฝันเห็นเพชร').found[0].meaning, /ของมีค่า/);
+  assert.match(r('ฝันเห็นทุเรียน').found[0].meaning, /อาหาร/);
+  assert.equal(r('ฝันเห็นไข่มุก').found[0].title, 'ไข่มุก'); // ไม่ใช่ "ไข่"
+  assert.equal(r('ฝันว่าตกตึก').found[0].title, 'ตกจากที่สูง'); // ตำราเฉพาะมาก่อนกลุ่มสิ่งของ
+  for (const t of ['ฝันเห็นรถไฟ', 'ฝันเห็นมีด', 'ฝันเห็นสายรุ้ง']) assert.ok(r(t).two.length >= 3, t);
 });
