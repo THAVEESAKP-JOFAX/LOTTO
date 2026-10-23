@@ -45,3 +45,19 @@ export async function recordActivity(kind, data = {}) {
     console.error('activity', err.message);
   }
 }
+
+// ค่าทั่วไปใน Blobs (ใช้เก็บแคช) — อ่าน/เขียนไม่ได้ก็คืนค่า null แทนการทำให้ระบบล้ม
+export async function readJSON(key) {
+  try {
+    return (await store().get(key, { type: 'json' })) ?? null;
+  } catch {
+    return null;
+  }
+}
+export async function writeJSON(key, value) {
+  try {
+    await store().setJSON(key, value);
+  } catch (err) {
+    console.error('cache', err.message);
+  }
+}

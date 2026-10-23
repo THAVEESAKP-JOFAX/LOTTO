@@ -228,3 +228,38 @@ test('/api/draws: งวดใหม่ที่ออกหลัง deploy ข
     assert.match(res.headers.get('netlify-cdn-cache-control'), /max-age=600/);
   } finally { globalThis.fetch = realFetch; process.env.URL = realUrl; }
 });
+
+test('loadDraws: งวดใหม่เก็บในแคช ไม่ดาวน์โหลดซ้ำทุกครั้ง และอัปเดตงวดที่ข้อมูลยังไม่ครบ', async () => {
+  const { loadDraws } = await import('../netlify/lib/data.mjs');
+  const mem = new Map();
+  setSettingsStore({ get: async (k) => mem.get(k) ?? null, setJSON: async (k, v) => { mem.set(k, JSON.parse(JSON.stringify(v))); } });
+  const base = draws.filter((d) => d.date <= '2026-10-16');
+  const header = 'date,first,second,third,fourth,fifth,last2,last3f,last3b,near1\n';
+  let csv = header + '2026-11-01,123456,"111111",,,,99,"111,222","333,444","123455,123457"\n'; // รางวัลย่อยยังไม่ครบ
+  let downloads = 0;
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => { if (String(url).endsWith('.csv')) { downloads++; return new Response(csv); } return new Response('', { status: 404 }); };
+  try {
+    const at = (iso) => new Date(iso);
+    let r = await loadDraws('https://cache.test', at('2026-11-01T10:00:00Z'), base);
+    assert.equal(r.at(-1).date, '2026-11-01');
+    assert.equal(r.at(-1).partial, true);
+    assert.equal(downloads, 1);
+    r = await loadDraws('https://cache.test', at('2026-11-01T10:05:00Z'), base); // ภายใน 15 นาที → ใช้แคช
+    assert.equal(downloads, 1);
+    assert.equal(r.at(-1).first, '123456');
+    // ข้อมูลครบแล้ว → เมื่อเช็กรอบถัดไปจะแทนที่ของเดิม
+    const full = draws.at(-1);
+    csv = header + `2026-11-01,123456,"${full.second.join(',')}","${full.third.join(',')}","${full.fourth.join(',')}","${full.fifth.join(',')}",99,"111,222","333,444","123455,123457"\n`;
+    r = await loadDraws('https://cache.test', at('2026-11-01T10:30:00Z'), base);
+    assert.equal(downloads, 2);
+    assert.equal(r.at(-1).partial, undefined);
+    // ระหว่างงวด (ยังไม่ใกล้ 16 พ.ย.) → ไม่ดาวน์โหลดเลย แต่ยังมีงวด 1 พ.ย.
+    r = await loadDraws('https://cache.test', at('2026-11-06T10:00:00Z'), base);
+    assert.equal(downloads, 2);
+    assert.equal(r.at(-1).date, '2026-11-01');
+  } finally {
+    globalThis.fetch = realFetch;
+    setSettingsStore({ get: async () => null, setJSON: async () => {} });
+  }
+});
