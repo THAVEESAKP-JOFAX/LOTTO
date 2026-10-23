@@ -87,3 +87,26 @@ export function drawQuery(draws, date, { today, siteUrl, settings } = {}) {
   const near = nearestPast(draws, date);
   return [note(`ไม่มีงวดวันที่ ${thDate(date)} — งวดที่ใกล้ที่สุดคือ ${thDate(near.date)}`), resultMessage(near, draws, siteUrl, settings)];
 }
+
+const MONTH_NAMES = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+const thShort = (iso) => new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
+
+// ทุกงวดในเดือนนั้น: "งวดเดือนธันวา" → งวด 1 และ 16 ธ.ค. (ออกแล้ว = ผลรางวัล · ยังไม่ออก = เลขแนะนำ)
+// ไม่ระบุปี = ปีปัจจุบัน (พ.ศ.)
+export function monthQuery(draws, month, yearBE, { today, siteUrl, settings } = {}) {
+  const be = yearBE ?? Number(today.slice(0, 4)) + 543;
+  const prefix = `${be - 543}-${String(month).padStart(2, '0')}`;
+  const latest = draws.at(-1).date;
+  const dates = new Set(draws.filter((d) => d.date.startsWith(prefix)).map((d) => d.date));
+  // งวดตามปฏิทินที่ยังไม่มีผล
+  let d = nextDrawDate(new Date(Date.parse(`${prefix}-01T00:00:00Z`) - 864e5).toISOString().slice(0, 10));
+  for (; d.startsWith(prefix); d = nextDrawDate(d)) if (d > latest) dates.add(d);
+  const list = [...dates].sort();
+  const title = `งวดเดือน${MONTH_NAMES[month - 1]} ${be}`;
+  if (!list.length) return [note(`${title} ไม่มีข้อมูล · มีข้อมูลตั้งแต่ ${thDate(draws[0].date)} ถึง ${thDate(latest)}`)];
+  const future = list.filter((x) => x > latest);
+  const header = `${title} มี ${list.length} งวด: ${list.map(thShort).join(' · ')}` +
+    (future.length ? `\n${future.length === list.length ? 'ยังไม่ออกรางวัล' : `งวด ${future.map(thShort).join(' · ')} ยังไม่ออกรางวัล`} — เลขแนะนำจาก LOTTO-THAI คำนวณจากข้อมูลถึงงวด ${thDate(latest)}` : '');
+  const cards = list.flatMap((x) => drawQuery(draws, x, { today, siteUrl, settings }).filter((m) => m.type === 'flex'));
+  return [note(header), ...cards].slice(0, 5);
+}

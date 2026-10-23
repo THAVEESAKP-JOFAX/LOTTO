@@ -416,3 +416,20 @@ test('/api/admin/rich-menu: ต้องเข้าสู่ระบบ แล
     assert.ok(calls.includes('POST https://api-data.line.me/v2/bot/richmenu/new1/content'));
   } finally { globalThis.fetch = realFetch; process.env = env; }
 });
+
+test('LINE: "ขอ งวดเดือน ธันวา" ตอบทุกงวดในเดือน และ "ขอ…" นำหน้าคำสั่งได้', async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ draws }));
+  try {
+    const { handleEvent } = await import('../netlify/functions/line-webhook.mjs');
+    const ask = async (text) => handleEvent({ type: 'message', source: { type: 'group', groupId: 'C' }, message: { type: 'text', text } }, 'https://month.test', normalizeSettings({}));
+    for (const t of ['ขอ งวดเดือน ธันวา', 'งวดเดือนธันวา', 'งวด ธ.ค. 69']) {
+      const r = await ask(t);
+      assert.match(r[0].text, /งวดเดือนธันวาคม/, t);
+      assert.ok(r.length >= 3 && r.length <= 5, t);
+      assert.deepEqual(r.flatMap((m) => emptyTexts(m)), [], t);
+    }
+    assert.match((await ask('ขอเลขเด็ด'))[0].altText, /เลขแนะนำ/);
+    assert.equal(await ask('ขอบคุณครับ'), null);
+  } finally { globalThis.fetch = realFetch; }
+});

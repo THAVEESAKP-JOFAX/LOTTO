@@ -9,7 +9,7 @@ import { parseNumbers } from '../../src/lib/ticket-check.js';
 import { parseDay, dayOf, bareDay } from '../../src/lib/lucky-day.js';
 import { parseBirthMonth, parseBirthYear } from '../../src/lib/lucky-birth.js';
 import { upcomingDraw, todayInThailand } from '../../src/lib/schedule.js';
-import { parseDrawDate, drawQuery } from '../../src/lib/date-query.js';
+import { parseDrawDate, drawQuery, monthQuery } from '../../src/lib/date-query.js';
 
 export const config = { path: '/api/line/webhook' };
 
@@ -34,6 +34,7 @@ export function cleanCommand(message) {
     .replace(/[\u200b-\u200d\ufeff]/g, '')
     .replace(/^\s*@\S+\s+/, '')
     .trim()
+    .replace(/^ขอ(?:ดู)?\s*(?=งวด|เลข|ผล|ตรวจ|ทำนาย|หวย|ฝัน|ข่าว|[0-9])/, '')
     .replace(/[\s!?.。~…]+$/, '')
     .replace(/\s*(?:ครับผม|ครับ|คับ|ค่ะ|คะ|ค่า|จ้า|จ้ะ|จ๊ะ|นะคะ|นะครับ|หน่อย|ด้วย|นะ)+$/, '')
     .trim()
@@ -204,6 +205,15 @@ async function handleSingle(ev, siteUrl, settings = null) {
   if (check) {
     const draws = await loadDraws(siteUrl);
     return [{ type: 'text', text: checkText(draws, check[1]) }];
+  }
+  // ทั้งเดือน: "งวดเดือนธันวา", "งวด ธ.ค. 69", "ผลงวดเดือนตุลาคม 2569"
+  const monthAsk = compact.match(/^(?:ผล|เลข|หวย)?(?:งวด(?:ประจำ)?(?:เดือน)?|เดือน)([ก-๙.]+?)(\d{2,4})?$/);
+  const askedMonth = monthAsk && parseBirthMonth(monthAsk[1]);
+  if (askedMonth && askedMonth.day === null) {
+    const y = monthAsk[2] ? Number(monthAsk[2]) : null;
+    const be = y === null ? null : y < 100 ? 2500 + y : y < 2400 ? y + 543 : y;
+    const draws = await loadDraws(siteUrl);
+    return monthQuery(draws, askedMonth.month, be, { today: todayInThailand(), siteUrl, settings });
   }
   // ถามตามวันที่: "งวด 01/11/26", "ผลงวด 16 ต.ค. 69" หรือพิมพ์วันที่อย่างเดียว
   const dateCmd = cmd.match(/^(?:งวด|ผลงวด|เลขงวด|หวยงวด|งวดวันที่)\s*(.+)$/);

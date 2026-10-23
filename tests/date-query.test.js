@@ -27,3 +27,14 @@ test('drawQuery: งวดในอนาคต → เลข bot, งวดท�
   assert.deepEqual(kinds(drawQuery(draws, '2026-11-01', { today: '2026-11-01' })), ['note', 'picks']); // วันนี้ ผลยังไม่ออก
   assert.deepEqual(kinds(drawQuery(draws, '2010-01-01', { today })), ['note']);
 });
+
+test('monthQuery: ทุกงวดในเดือน — อนาคตได้เลขแนะนำ ผ่านแล้วได้ผลรางวัล', async () => {
+  const { monthQuery } = await import('../src/lib/date-query.js');
+  const fut = monthQuery(draws, 12, 2569, { today: '2026-10-23' });
+  assert.match(fut[0].text, /งวดเดือนธันวาคม 2569 มี 2 งวด: 1 ธ\.ค\. · 16 ธ\.ค\./);
+  assert.equal(fut.filter((m) => m.type === 'flex').length, 2);
+  assert.match(fut[1].altText, /เลขแนะนำ/);
+  const past = monthQuery(draws, 10, 2569, { today: '2026-10-23' });
+  assert.match(past[1].altText, /ผลสลาก 1 ตุลาคม 2569/);
+  assert.match(monthQuery(draws, 1, 2550, { today: '2026-10-23' })[0].text, /ไม่มีข้อมูล/);
+});
