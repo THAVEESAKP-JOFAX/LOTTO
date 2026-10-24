@@ -78,9 +78,9 @@ export function renderHero(draws) {
   const stats = $('#hero-stats');
   if (stats) {
     stats.innerHTML = [
-      [draws.length.toLocaleString('th-TH'), 'งวดย้อนหลัง 10 ปี'],
-      [fmtDate(next).replace(/ \d{4}$/, ''), `งวดถัดไป · ${countdown}`],
-      ['อัตโนมัติ', 'การอัปเดตผลรางวัล'],
+      [draws.length.toLocaleString('th-TH'), 'งวดย้อนหลัง'],
+      [`<span class="long">${fmtDate(next).replace(/ \d{4}$/, '')}</span><span class="short">${fmtDate(next, true).replace(/ \d{2}$/, '')}</span>`, `งวดถัดไป<span class="long"> · ${countdown}</span>`],
+      ['อัตโนมัติ', 'อัปเดตผลรางวัล'],
     ].map(([v, l]) => `<div><dt>${l}</dt><dd>${v}</dd></div>`).join('');
   }
   if ($('#footer-update')) $('#footer-update').textContent = `ผลสลากงวด ${fmtDate(last.date)}`;
