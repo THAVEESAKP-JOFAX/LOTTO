@@ -83,7 +83,8 @@ export function renderHero(draws) {
       ['อัตโนมัติ', 'การอัปเดตผลรางวัล'],
     ].map(([v, l]) => `<div><dt>${l}</dt><dd>${v}</dd></div>`).join('');
   }
-  if ($('#footer-update')) $('#footer-update').textContent = `ผลล่าสุด งวด ${fmtDate(last.date)}`;
+  if ($('#footer-update')) $('#footer-update').textContent = `ผลสลากงวด ${fmtDate(last.date)}`;
+  if ($('#footer-first')) $('#footer-first').textContent = last.first;
   $('#latest').innerHTML = `
     <div class="latest-ribbon"><span class="live-dot"></span>ผลสลากงวดล่าสุด</div>
     <div class="date">${fmtDate(last.date)}</div>

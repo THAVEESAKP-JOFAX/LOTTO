@@ -866,3 +866,30 @@ html, body { overflow-x: clip; }
 .topbar nav { gap: 2px; }
 .topbar nav a[class^="c-"] { gap: 6px; padding: 7px 9px; }
 .footer-inner { padding-bottom: 48px; }
+
+/* ---------- footer (2 แถวสมดุล) ---------- */
+.footer-inner, .footer-copy { display: none; }
+.footer-top, .footer-bottom { max-width: 1200px; margin: 0 auto; padding-left: clamp(16px, 4vw, 32px); padding-right: clamp(16px, 4vw, 32px); }
+.footer-top { display: flex; justify-content: space-between; align-items: center; gap: 32px; flex-wrap: wrap; padding-top: 52px; padding-bottom: 36px; }
+.footer-brand .brand { font-size: 21px; }
+.footer-brand p { margin: 12px 0 0; max-width: 34em; color: rgba(255,255,255,.62); }
+.footer-latest {
+  display: flex; align-items: center; gap: 22px; padding: 16px 16px 16px 24px; border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); border: 1px solid rgba(255,255,255,.1);
+}
+.fl-info { display: grid; gap: 2px; }
+.fl-info span { font-size: 12.5px; color: rgba(255,255,255,.6); }
+.fl-info b { font: 700 30px/1.1 var(--display); letter-spacing: .1em; color: #fff;
+  background: linear-gradient(135deg, #fff6cf, #f4c542 55%, #e0a100); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.footer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-top: 18px; padding-bottom: 28px; border-top: 1px solid rgba(255,255,255,.08); }
+.footer-nav { display: flex; flex-wrap: wrap; gap: 4px 26px; }
+.footer-nav a, .footer-admin { color: rgba(255,255,255,.7); font-size: 13.5px; }
+.footer-nav a:hover, .footer-admin:hover { color: #fff; }
+.footer-admin { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.14); }
+@media (max-width: 720px) {
+  .footer-top { flex-direction: column; align-items: stretch; }
+  .footer-latest { justify-content: space-between; }
+  .footer-bottom { flex-direction: column; align-items: flex-start; }
+  .footer-nav { gap: 6px 18px; }
+}
+.footer-top, .footer-bottom { width: calc(100% - 2 * clamp(16px, 4vw, 32px)); max-width: 1136px; padding-left: 0; padding-right: 0; }
