@@ -144,6 +144,33 @@ export function renderKpis(draws) {
 }
 
 // ---------- huay ----------
+// ---------- สีความถี่: ร้อน (เหลือง→ส้ม→แดง) = ออกบ่อย · เย็น (ฟ้า→น้ำเงิน) = ออกน้อย/ไม่ออก · กลาง = ใกล้ค่าเฉลี่ย ----------
+const HEAT_MID = [238, 240, 249];
+const HEAT_HOT = [HEAT_MID, [251, 191, 36], [249, 115, 22], [225, 29, 72]];
+const HEAT_COLD = [HEAT_MID, [125, 211, 252], [59, 130, 246], [55, 48, 163]];
+const lerp = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+function ramp(stops, t) {
+  const x = Math.min(1, Math.max(0, t)) * (stops.length - 1);
+  const i = Math.min(stops.length - 2, Math.floor(x));
+  return lerp(stops[i], stops[i + 1], x - i);
+}
+const luminance = ([r, g, b]) => [r, g, b].map((c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; })
+  .reduce((s, c, i) => s + c * [0.2126, 0.7152, 0.0722][i], 0);
+const contrast = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+// ค่าเทียบกับค่าเฉลี่ย (mean): สูงกว่า → ร้อน, ต่ำกว่า → เย็น · invert = ค่ามากหมายถึง "ไม่ออกนาน" (สลับสี)
+export function heatStyle(v, { mean, min, max, invert = false }) {
+  const up = v >= mean;
+  const t = (up ? (v - mean) / ((max - mean) || 1) : (mean - v) / ((mean - min) || 1)) ** 0.8;
+  const rgb = ramp(up !== invert ? HEAT_HOT : HEAT_COLD, t);
+  const L = luminance(rgb);
+  const fg = contrast(L, luminance([31, 35, 51])) >= contrast(L, 1) ? '#1f2333' : '#ffffff';
+  return `background:rgb(${rgb});color:${fg}`;
+}
+const statsOf = (vals) => ({ mean: vals.reduce((a, b) => a + b, 0) / vals.length, min: Math.min(...vals), max: Math.max(...vals) });
+function heatLegend(el, lo, hi) {
+  el.innerHTML = `<span>${lo}</span><i class="heat-bar"></i><span>${hi}</span>`;
+}
+
 export const huay = { game: 'last2', metric: 'freq' };
 
 export function renderHuay(draws) {
@@ -154,60 +181,59 @@ export function renderHuay(draws) {
   const items = [...freq.keys()];
   const top = (arr, dir) => [...items].sort((a, b) => dir * (arr[b] - arr[a]) || a - b).slice(0, 10);
   const lists = [
-    ['ออกบ่อยที่สุด', top(freq, 1), (n) => `${freq[n]} ครั้ง`],
-    ['ออกน้อยที่สุด', top(freq, -1), (n) => `${freq[n]} ครั้ง`],
-    ['ไม่ออกนานที่สุด', top(gap, 1), (n) => (gap[n] > draws.length ? 'ไม่เคยออก' : `${gap[n]} งวด`)],
+    ['hot', 'ออกบ่อยที่สุด', top(freq, 1), (n) => `${freq[n]} ครั้ง`],
+    ['cold', 'ออกน้อยที่สุด', top(freq, -1), (n) => (freq[n] === 0 ? 'ไม่เคยออก' : `${freq[n]} ครั้ง`)],
+    ['overdue', 'ไม่ออกนานที่สุด', top(gap, 1), (n) => (gap[n] > draws.length ? 'ไม่เคยออก' : `${gap[n]} งวด`)],
   ];
-  $('#ranks').innerHTML = lists.map(([t, ns, f]) => `
-    <div><h4>${t}</h4><ol>${ns.map((n) => `<li><b>${pad(n, game.digits)}</b><span>${f(n)}</span></li>`).join('')}</ol></div>`).join('');
+  $('#ranks').innerHTML = lists.map(([kind, t, ns, f]) => `
+    <div class="rk ${kind}"><h4>${t}</h4><ol>${ns.map((n, i) => `<li style="--k:${(1 - i * 0.07).toFixed(2)}"><b>${pad(n, game.digits)}</b><span>${f(n)}</span></li>`).join('')}</ol></div>`).join('');
 
   if (game.space === 100) {
-    const vals = huay.metric === 'freq' ? freq : gap.map((g) => Math.min(g, draws.length));
-    const max = Math.max(...vals), min = Math.min(...vals);
+    const byFreq = huay.metric === 'freq';
+    const vals = byFreq ? freq : gap.map((g) => Math.min(g, draws.length));
+    const st = statsOf(vals);
+    const { min, max } = st;
     $('#heatmap').style.display = '';
     $('#heatmap').className = 'heatmap';
     $('#heatmap').innerHTML = vals.map((v, n) => {
-      const a = 0.06 + 0.84 * ((v - min) / (max - min || 1));
-      const tip = `${pad(n, 2)} · ออก ${freq[n]} ครั้ง · ค้าง ${gap[n]} งวด`;
-      return `<div class="cell${latest.has(pad(n, 2)) ? ' latest-hit' : ''}" style="background:rgba(91,108,240,${a.toFixed(3)});color:${a > 0.55 ? '#fff' : INK.text}" title="${tip}" aria-label="${tip}">${pad(n, 2)}</div>`;
+      const tip = `${pad(n, 2)} · ${freq[n] ? `ออก ${freq[n]} ครั้ง` : 'ไม่เคยออก'} · ค้าง ${gap[n]} งวด`;
+      return `<div class="cell${latest.has(pad(n, 2)) ? ' latest-hit' : ''}" style="${heatStyle(v, { ...st, invert: !byFreq })}" title="${tip}" aria-label="${tip}">${pad(n, 2)}</div>`;
     }).join('');
     const expect = (draws.length / 100).toFixed(1);
-    $('#heat-title').textContent = huay.metric === 'freq' ? 'แผนที่ความถี่ 00–99' : 'แผนที่งวดที่ค้าง 00–99';
-    $('#heat-note').textContent = huay.metric === 'freq'
-      ? `สีเข้ม = ออกบ่อย · ค่าคาดหมายเฉลี่ย ${expect} ครั้ง/เลข · กรอบสว่าง = งวดล่าสุด · ช่วงจริง ${min}–${max} ครั้ง`
-      : `สีเข้ม = ไม่ออกมานาน · กรอบสว่าง = งวดล่าสุด`;
+    $('#heat-title').textContent = byFreq ? 'แผนที่ความถี่ 00–99' : 'แผนที่งวดที่ค้าง 00–99';
+    $('#heat-note').textContent = byFreq
+      ? `ค่าคาดหมายเฉลี่ย ${expect} ครั้ง/เลข · กรอบสว่าง = งวดล่าสุด · ช่วงจริง ${min}–${max} ครั้ง`
+      : `กรอบสว่าง = งวดล่าสุด · ค้างนานที่สุด ${max} งวด`;
+    heatLegend($('#heat-legend'), byFreq ? 'ออกน้อย / ไม่เคยออก' : 'ไม่ออกมานาน', byFreq ? 'ออกบ่อย' : 'เพิ่งออก');
     $('#heat-metric').style.display = '';
   } else {
     // 3 ตัว: 1,000 เลขมากเกินแผนที่ → แสดงความถี่หลักต่อตำแหน่งแทน
     $('#heat-metric').style.display = 'none';
     $('#heat-title').textContent = `${game.label}: หลักต่อตำแหน่ง`;
     renderPosMap($('#heatmap'), positional(draws, game), ['หลักร้อย', 'หลักสิบ', 'หลักหน่วย']);
+    heatLegend($('#heat-legend'), 'ออกน้อย', 'ออกบ่อย');
     $('#heat-note').textContent = `ออกงวดละ ${game.perDraw} เลข · ค่าคาดหมายเฉลี่ย ${(draws.length * game.perDraw / 1000).toFixed(2)} ครั้ง/เลข จึงต้องดูระดับหลักแทน`;
   }
 }
 
 export function renderPosMap(el, m, labels) {
   el.className = 'posmap';
-  const all = m.flat();
-  const max = Math.max(...all), min = Math.min(...all);
+  const st = statsOf(m.flat());
   el.innerHTML = `<div></div>${[...Array(10).keys()].map((d) => `<div class="h">${d}</div>`).join('')}` +
     m.map((row, p) => `<div class="row-label">${labels[p]}</div>` + row.map((c, d) => {
-      const a = 0.06 + 0.84 * ((c - min) / (max - min || 1));
-      return `<div class="cell" style="background:rgba(91,108,240,${a.toFixed(3)});color:${a > 0.55 ? '#fff' : INK.text}" title="${labels[p]} หลัก ${d}: ${c} ครั้ง">${c}</div>`;
+      return `<div class="cell" style="${heatStyle(c, st)}" title="${labels[p]} หลัก ${d}: ${c} ครั้ง">${c}</div>`;
     }).join('')).join('');
 }
 
 // ---------- สถิติหวยแยกตามหลัก (2 ตัวบน / 2 ตัวล่าง / 3 ตัวบน) ----------
 export function renderPlaces(draws) {
+  heatLegend($('#places-legend'), 'ออกน้อย', 'ออกบ่อย');
   const range = `${fmtDate(draws[0].date)} – ${fmtDate(draws.at(-1).date)} (${draws.length} งวด)`;
   $('#places-list').innerHTML = PLACE_STATS.map((st) => {
     const { rows, total } = digitsByPlace(draws, st.value);
     const cells = (counts, cls = '') => {
-      const max = Math.max(...counts), min = Math.min(...counts);
-      return counts.map((c) => {
-        const a = 0.04 + 0.5 * ((c - min) / (max - min || 1));
-        return `<td class="num ${cls}${c === max ? ' top' : ''}" style="background:rgba(91,108,240,${a.toFixed(3)})">${c}</td>`;
-      }).join('');
+      const st = statsOf(counts);
+      return counts.map((c) => `<td class="num ${cls}${c === st.max ? ' top' : ''}" style="${heatStyle(c, st)}">${c}</td>`).join('');
     };
     return `
       <div class="card place-card">
@@ -228,6 +254,7 @@ export function renderPlaces(draws) {
 export function renderLottery(draws) {
   const s = summary(draws);
   renderPosMap($('#posmap'), positional(draws, GAMES.first), ['แสนหลัก', 'หมื่น', 'พัน', 'ร้อย', 'สิบ', 'หน่วย']);
+  heatLegend($('#pos-legend'), 'ออกน้อย', 'ออกบ่อย');
   const ps = s.chiFirstPositions.map((c) => c.p);
   $('#pos-note').textContent = `Chi-square แต่ละตำแหน่ง p = ${ps.map((p) => p.toFixed(2)).join(', ')} ` +
     `(p > 0.05 = กระจายตัวสม่ำเสมอตามการสุ่ม) · ค่าคาดหมาย ${(draws.length / 10).toFixed(1)} ครั้งต่อช่อง`;

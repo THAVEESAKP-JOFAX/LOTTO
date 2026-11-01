@@ -103,8 +103,9 @@
       <div class="section-head">
         <p class="eyebrow">สถิติตามหลัก</p>
         <h2>ความถี่ของตัวเลขแยกตามหลัก</h2>
-        <p class="sub">จำนวนครั้งที่ตัวเลข 0–9 ปรากฏในหลักร้อย หลักสิบ และหลักหน่วย ย้อนหลัง 10 ปี · ช่องสีเข้มแสดงความถี่สูง ตัวเลขสีน้ำเงินคือค่าสูงสุดของแถว</p>
+        <p class="sub">จำนวนครั้งที่ตัวเลข 0–9 ปรากฏในหลักร้อย หลักสิบ และหลักหน่วย ย้อนหลัง 10 ปี · สีส้ม–แดงคือออกบ่อย สีน้ำเงินคือออกน้อย เทียบกับค่าเฉลี่ยของแต่ละแถว</p>
       </div>
+      <div class="heat-legend" id="places-legend"></div>
       <div class="places" id="places-list"></div>
     </section>
 
@@ -124,6 +125,7 @@
             </div>
           </div>
           <div id="heatmap" class="heatmap"></div>
+          <div class="heat-legend" id="heat-legend"></div>
           <p class="note" id="heat-note"></p>
         </div>
         <div class="card">
@@ -142,6 +144,7 @@
         <div class="card">
           <h3>ความถี่ของหลัก 0–9 ในแต่ละตำแหน่ง</h3>
           <div id="posmap" class="posmap"></div>
+          <div class="heat-legend" id="pos-legend"></div>
           <p class="note" id="pos-note"></p>
         </div>
         <div class="card">
