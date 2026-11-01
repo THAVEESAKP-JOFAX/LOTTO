@@ -107,6 +107,7 @@ const ROW_ICON = {
   result: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',
   reply: '<path d="M4 5h16v11H8l-4 4z"/><path d="M8 9.5h8M8 12.5h5"/>',
   data: '<ellipse cx="12" cy="5.5" rx="7.5" ry="2.8"/><path d="M4.5 5.5v6c0 1.6 3.4 2.8 7.5 2.8s7.5-1.2 7.5-2.8v-6M4.5 11.5v6c0 1.6 3.4 2.8 7.5 2.8s7.5-1.2 7.5-2.8v-6"/>',
+  glo: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.5 5.3 3.5 8.5s-1.1 6.1-3.5 8.5c-2.4-2.4-3.5-5.3-3.5-8.5s1.1-6.1 3.5-8.5z"/>',
   manual: '<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11.5V4a1.5 1.5 0 0 1 3 0v7.5M14 11.5V5.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7h-.5a6 6 0 0 1-5.2-3l-2-3.5a1.5 1.5 0 0 1 2.6-1.5L8 15"/>',
 };
 // ไอคอนสถานะด้านขวา
@@ -155,6 +156,11 @@ function statusRows() {
       : { key: 'reply', title: 'ตอบกลับคำสั่งในกลุ่ม', level: 'off', value: 'ปิดใช้งาน', detail: 'bot จะไม่ตอบคำสั่งในกลุ่ม (ยกเว้น groupid)' },
     { key: 'data', title: 'ข้อมูลผลรางวัล', level: stale ? 'warn' : 'ok', value: stale ? 'รออัปเดต' : 'เป็นปัจจุบัน',
       detail: `งวดล่าสุด ${thDate(last.date)} · ${draws.length} งวด${stale ? ' · ยังไม่พบผลงวดถัดไปจากแหล่งข้อมูล' : ''}` },
+    // ไม่มีข้อมูล glo (ฟังก์ชันรุ่นเก่า) → ไม่แสดงแถวนี้
+    ...(st.glo ? [{ key: 'glo', title: 'API กองสลาก (glo.or.th)', level: st.glo.ok ? 'ok' : 'warn',
+      value: st.glo.ok ? 'เชื่อมต่อได้' : 'เชื่อมต่อไม่ได้',
+      detail: st.glo.ok ? `ผลล่าสุดจากกองสลาก ${thDate(st.glo.date)} · รางวัลที่ 1 ${st.glo.first}`
+        : `${st.glo.error} · ใช้คลังข้อมูลบน GitHub แทน (ผลอาจขึ้นช้ากว่า)` }] : []),
     { key: 'manual', title: 'การส่งข้อความด้วยตนเอง', level: manual.failed ? 'warn' : 'ok', value: manual.failed ? 'ครั้งล่าสุดไม่สำเร็จ' : 'พร้อมใช้งาน', detail: manual.text },
   ];
 }

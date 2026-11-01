@@ -14,14 +14,25 @@ async function text(url, timeoutMs = 5000) {
 
 // ผลงวดล่าสุดจากสำนักงานสลากกินแบ่งรัฐบาลโดยตรง (POST เท่านั้น)
 export const GLO_LATEST = 'https://www.glo.or.th/api/lottery/getLatestLottery';
-async function latestFromGlo(timeoutMs = 6000) {
+export async function latestFromGlo(timeoutMs = 6000) {
   const res = await fetch(GLO_LATEST, {
     method: 'POST', body: '{}', signal: AbortSignal.timeout(timeoutMs),
     headers: { 'content-type': 'application/json', accept: 'application/json' },
   });
-  if (!res.ok) return null;
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const r = (await res.json())?.response;
-  return r?.date ? fromGloResult(r) : null;
+  if (!r?.date) throw new Error('รูปแบบข้อมูลไม่ตรง');
+  return fromGloResult(r);
+}
+
+// ใช้ในแผงสถานะหน้า Admin: ทดสอบว่าเรียก API ของกองสลากจาก Netlify ได้จริงหรือไม่
+export async function checkGlo() {
+  try {
+    const d = await latestFromGlo(5000);
+    return { ok: Boolean(d.first), date: d.date, first: d.first };
+  } catch (err) {
+    return { ok: false, error: err.name === 'TimeoutError' ? 'หมดเวลาเชื่อมต่อ' : err.message };
+  }
 }
 
 // ไฟล์ประวัติจากเว็บเปลี่ยนเฉพาะตอน deploy: จำไว้ 5 นาทีในหน่วยความจำของ function
@@ -65,7 +76,7 @@ export async function loadDraws(siteUrl = process.env.URL, now = new Date(), bas
     else if (fresh[i].partial && !d.partial) fresh[i] = d;
   };
   // 1) API ของกองสลาก: ได้ผลทันทีที่ประกาศ (ระหว่างถ่ายทอดสดรางวัลย่อยอาจยังไม่ครบ → เก็บเป็น partial แล้วอัปเดตรอบถัดไป)
-  const glo = await latestFromGlo().catch(() => null);
+  const glo = await latestFromGlo().catch((err) => { console.warn('GLO API:', err.message); return null; });
   if (glo && glo.date > baseLast && !complete.has(glo.date) && mainOk(glo)) upsert({ ...glo, source: 'glo-api' });
   // 2) คลังข้อมูลบน GitHub: ใช้ตรวจข้าม/สำรองเมื่อ API ของกองสลากเรียกไม่ได้
   const csv = await text(PRIMARY).catch(() => null);

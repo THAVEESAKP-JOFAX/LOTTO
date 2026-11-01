@@ -285,6 +285,13 @@ test('/api/admin/status: บอกว่าตั้งค่า LINE แล้�
   process.env.LINE_CHANNEL_SECRET = 'secret-value';
   process.env.LINE_GROUP_IDS = 'Ca, Cb';
   process.env.ALERT_ADMIN_KEY = 'k';
+  const realFetch = globalThis.fetch;
+  let gloUp = true;
+  globalThis.fetch = async (url) => {
+    if (!String(url).includes('glo.or.th')) return new Response('', { status: 404 });
+    if (!gloUp) throw new TypeError('fetch failed');
+    return new Response(JSON.stringify({ response: { date: '2026-11-01', data: { first: { number: [{ value: '423224' }] } } } }));
+  };
   try {
     assert.equal((await status(new Request('https://x/api/admin/status'))).status, 401);
     await recordActivity('picks', { ok: true, date: '2026-11-01', groups: 2 });
@@ -293,7 +300,11 @@ test('/api/admin/status: บอกว่าตั้งค่า LINE แล้�
     assert.deepEqual(body.line, { token: true, secret: true, groups: 2 });
     assert.equal(body.activity.picks.groups, 2);
     assert.doesNotMatch(JSON.stringify(body), /secret-token-value|secret-value/);
-  } finally { process.env = env; }
+    assert.deepEqual(body.glo, { ok: true, date: '2026-11-01', first: '423224' }); // ทดสอบ API กองสลากจาก Netlify
+    gloUp = false;
+    const down = await (await status(new Request('https://x/api/admin/status', { headers: { 'x-admin-key': 'k' } }))).json();
+    assert.deepEqual(down.glo, { ok: false, error: 'fetch failed' });
+  } finally { process.env = env; globalThis.fetch = realFetch; }
 });
 
 test('LINE ถูกรางวัล: แบนเนอร์ทองพร้อมถ้วยรางวัลจากเว็บ', async () => {
