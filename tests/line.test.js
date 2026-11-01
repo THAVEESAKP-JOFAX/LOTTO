@@ -331,3 +331,11 @@ test('loadDraws: API ของกองสลากล่ม → ใช้คล
     assert.equal(r.at(-1).source, 'glo');
   } finally { globalThis.fetch = realFetch; }
 });
+
+test('เลขของ bot สำหรับ LINE เปลี่ยนไปในแต่ละงวด (ไม่ซ้ำชุดเดิมทุกงวด)', () => {
+  const a = botPicksFor('2026-11-01', draws).picks;
+  const b = botPicksFor('2026-11-16', draws).picks;
+  for (const k of ['last2', 'last3', 'front3', 'first']) assert.notDeepEqual(a[k], b[k], k);
+  const overlap = a.last2.filter((n) => b.last2.includes(n)).length;
+  assert.ok(overlap < a.last2.length, 'เลขท้าย 2 ตัวไม่ควรซ้ำทั้งชุด');
+});

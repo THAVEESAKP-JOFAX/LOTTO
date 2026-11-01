@@ -24,13 +24,18 @@ const thDate = (iso) => new Intl.DateTimeFormat('th-TH', { day: 'numeric', month
 
 // เลขของ bot สำหรับงวด drawDate — ใช้ประวัติก่อนงวดนั้นเท่านั้น และ seed จากวันที่
 // จึงคำนวณซ้ำได้เหมือนเดิมเสมอ (ใช้ตรวจผลหลังออกรางวัลได้)
+const SAMPLED_FROM = '2026-11-16';
 export function botPicksFor(drawDate, draws, settings = DEFAULT_SETTINGS) {
   const history = draws.filter((d) => d.date < drawDate);
   const botId = settings.botId ?? DEFAULT_SETTINGS.botId;
   const counts = { ...ALERT_PICKS, ...(settings.picks ?? {}) };
   const picks = {};
   for (const key of Object.keys(ALERT_PICKS)) {
-    picks[key] = pick(botId, history, GAMES[key], counts[key], 'analyze', mulberry32(hashSeed('line', drawDate, key)));
+    // สุ่มถ่วงน้ำหนักตามคะแนนของ bot (seed ตามวันที่งวด): แต่ละงวดได้ชุดใหม่ แต่ถามซ้ำในงวดเดียวกันได้เลขเดิม
+    // (โหมด analyze เลือกคะแนนสูงสุดเสมอ คะแนนจากประวัติ 10 ปีแทบไม่เปลี่ยน → เลขซ้ำกันทุกงวด)
+    // งวดก่อนหน้านั้นยังใช้โหมดเดิม เพื่อให้ตรวจผลตรงกับเลขที่ส่งไปจริง
+    const mode = drawDate >= SAMPLED_FROM ? 'random' : 'analyze';
+    picks[key] = pick(botId, history, GAMES[key], counts[key], mode, mulberry32(hashSeed('line', drawDate, key)));
   }
   return { drawDate, picks, botId, history };
 }
