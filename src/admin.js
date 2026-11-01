@@ -1,8 +1,9 @@
 // หน้า Admin: เข้าสู่ระบบ → ตั้งค่า bot, ส่ง Alert LINE, Bot / ทดสอบเลข / Backtest
 import './styles.css';
-import { $, load, scrollSpy, renderBots, runBot, renderChecker, renderBacktest } from './app.js';
+import { $, load, scrollSpy, renderBots, runBot, renderChecker, renderBacktest, fmtDate } from './app.js';
 import { upcomingDraw, todayInThailand, nextDrawDate as nextDrawAfter } from './lib/schedule.js';
 import { BOTS } from './lib/bots.js';
+import { LOCKED_PICKS } from './lib/locked-picks.js';
 
 const TOKEN_KEY = 'lotto-admin-token';
 
@@ -63,8 +64,24 @@ function readSettings(form) {
 const dash = { draws: null, settings: null, status: null, summary: null };
 const thDate = (iso, opts = { day: 'numeric', month: 'long', year: 'numeric' }) =>
   new Intl.DateTimeFormat('th-TH', { ...opts, timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
+// ชุดตัวเลขที่ล็อกไว้ล่วงหน้า (scripts/lock-picks.mjs) · ใช้จริงเมื่อกลยุทธ์และจำนวนเลขในหน้าตั้งค่าตรงกับตอนล็อก
+function renderLocked(settings) {
+  const today = todayInThailand();
+  const rows = Object.entries(LOCKED_PICKS.draws).filter(([d]) => d >= today);
+  const counts = { ...LOCKED_PICKS.counts, ...(settings?.picks ?? {}) };
+  const active = !settings || ((settings.botId ?? LOCKED_PICKS.botId) === LOCKED_PICKS.botId &&
+    Object.keys(LOCKED_PICKS.counts).every((k) => counts[k] === LOCKED_PICKS.counts[k]));
+  $('#locked-meta').textContent = !rows.length ? 'ยังไม่มีชุดตัวเลขที่ล็อกไว้ (npm run lock-picks)'
+    : `${rows.length} งวด ถึง ${fmtDate(rows.at(-1)[0])} · คำนวณจากผล ${fmtDate(LOCKED_PICKS.historyUntil)} · ` +
+      (active ? 'ใช้ชุดนี้ส่ง LINE และตอบคำสั่ง' : 'ไม่ได้ใช้งาน: กลยุทธ์หรือจำนวนเลขในการตั้งค่าต่างจากตอนล็อก');
+  $('#locked-table').innerHTML = rows.length ? '<thead><tr><th>งวด</th><th>เลขท้าย 2 ตัว</th><th>เลขท้าย 3 ตัว</th><th>เลขหน้า 3 ตัว</th><th>สลาก 6 หลัก</th></tr></thead><tbody>' +
+    rows.map(([d, p]) => `<tr><td>${fmtDate(d, true)}</td><td class="mono">${p.last2.join(' ')}</td><td class="mono">${p.last3.join(' ')}</td>` +
+      `<td class="mono">${p.front3.join(' ')}</td><td class="mono">${p.first.join(' ')}</td></tr>`).join('') + '</tbody>' : '';
+}
+
 function renderDash() {
   const { draws, settings } = dash;
+  renderLocked(settings);
   if (!draws) return;
   const last = draws.at(-1);
   const today = todayInThailand();

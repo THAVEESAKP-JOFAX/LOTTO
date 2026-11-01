@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { parseDrawDate, drawQuery } from '../src/lib/date-query.js';
 
-const draws = JSON.parse(readFileSync(new URL('../public/data/draws.json', import.meta.url), 'utf8')).draws;
+const draws = JSON.parse(readFileSync(new URL('../public/data/draws.json', import.meta.url), 'utf8')).draws
+  .filter((d) => d.date <= '2026-10-16'); // ตรึงข้อมูลทดสอบไว้ที่งวด 16 ต.ค. 2569
 const today = '2026-10-18';
 
 test('parseDrawDate รองรับหลายรูปแบบ ทั้ง ค.ศ. และ พ.ศ.', () => {

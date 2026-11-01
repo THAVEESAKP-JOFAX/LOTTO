@@ -12,6 +12,7 @@ import { newsNumbers } from './news-numbers.js';
 import { interpretDream, POPULAR_DREAMS } from './dream.js';
 import { probabilityStats, PROB_KINDS } from './probability.js';
 import { DEFAULT_SETTINGS } from './settings.js';
+import { LOCKED_PICKS } from './locked-picks.js';
 
 const C = {
   top: '#2196f3', bottom: '#1565c0', text: '#ffffff', muted: '#d3e8ff', hi: '#ffe082', good: '#b9f6ca', line: '#64b5f6',
@@ -25,18 +26,38 @@ const thDate = (iso) => new Intl.DateTimeFormat('th-TH', { day: 'numeric', month
 // เลขของ bot สำหรับงวด drawDate — ใช้ประวัติก่อนงวดนั้นเท่านั้น และ seed จากวันที่
 // จึงคำนวณซ้ำได้เหมือนเดิมเสมอ (ใช้ตรวจผลหลังออกรางวัลได้)
 const SAMPLED_FROM = '2026-11-16';
+const sameCounts = (a, b) => Object.keys(ALERT_PICKS).every((k) => a[k] === b[k]);
+
+// สุ่มเลขทุกประเภทของงวด drawDate จากประวัติ history (ใช้ทั้งตอนคำนวณสดและตอนล็อกเลขล่วงหน้า)
+export function samplePicks(drawDate, history, botId, counts, mode = 'random') {
+  const picks = {};
+  for (const key of Object.keys(ALERT_PICKS)) {
+    picks[key] = pick(botId, history, GAMES[key], counts[key], mode, mulberry32(hashSeed('line', drawDate, key)));
+  }
+  return picks;
+}
+
+// งวดที่กองสลากเลื่อนวัน (เช่น 30 ธ.ค. แทน 2 ม.ค.) ใช้เลขที่ล็อกของงวดตามกำหนดที่ห่างไม่เกิน 3 วัน
+function lockedFor(drawDate) {
+  if (LOCKED_PICKS.draws[drawDate]) return LOCKED_PICKS.draws[drawDate];
+  const t = Date.parse(drawDate + 'T00:00:00Z');
+  const near = Object.keys(LOCKED_PICKS.draws).find((d) => Math.abs(Date.parse(d + 'T00:00:00Z') - t) <= 3 * 864e5);
+  return near ? LOCKED_PICKS.draws[near] : null;
+}
+
 export function botPicksFor(drawDate, draws, settings = DEFAULT_SETTINGS) {
   const history = draws.filter((d) => d.date < drawDate);
   const botId = settings.botId ?? DEFAULT_SETTINGS.botId;
   const counts = { ...ALERT_PICKS, ...(settings.picks ?? {}) };
-  const picks = {};
-  for (const key of Object.keys(ALERT_PICKS)) {
-    // สุ่มถ่วงน้ำหนักตามคะแนนของ bot (seed ตามวันที่งวด): แต่ละงวดได้ชุดใหม่ แต่ถามซ้ำในงวดเดียวกันได้เลขเดิม
-    // (โหมด analyze เลือกคะแนนสูงสุดเสมอ คะแนนจากประวัติ 10 ปีแทบไม่เปลี่ยน → เลขซ้ำกันทุกงวด)
-    // งวดก่อนหน้านั้นยังใช้โหมดเดิม เพื่อให้ตรวจผลตรงกับเลขที่ส่งไปจริง
-    const mode = drawDate >= SAMPLED_FROM ? 'random' : 'analyze';
-    picks[key] = pick(botId, history, GAMES[key], counts[key], mode, mulberry32(hashSeed('line', drawDate, key)));
+  // เลขที่ล็อกไว้ล่วงหน้า (scripts/lock-picks.mjs) ใช้เมื่อกลยุทธ์และจำนวนเลขตรงกับตอนล็อก
+  const locked = lockedFor(drawDate);
+  if (locked && botId === LOCKED_PICKS.botId && sameCounts(counts, LOCKED_PICKS.counts)) {
+    return { drawDate, picks: structuredClone(locked), botId, history, locked: true };
   }
+  // สุ่มถ่วงน้ำหนักตามคะแนนของ bot (seed ตามวันที่งวด): แต่ละงวดได้ชุดใหม่ แต่ถามซ้ำในงวดเดียวกันได้เลขเดิม
+  // (โหมด analyze เลือกคะแนนสูงสุดเสมอ คะแนนจากประวัติ 10 ปีแทบไม่เปลี่ยน → เลขซ้ำกันทุกงวด)
+  // งวดก่อนหน้านั้นยังใช้โหมดเดิม เพื่อให้ตรวจผลตรงกับเลขที่ส่งไปจริง
+  const picks = samplePicks(drawDate, history, botId, counts, drawDate >= SAMPLED_FROM ? 'random' : 'analyze');
   return { drawDate, picks, botId, history };
 }
 

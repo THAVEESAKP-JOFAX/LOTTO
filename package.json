@@ -12,7 +12,8 @@
     "backtest": "node scripts/backtest-report.mjs",
     "deploy": "node scripts/deploy.mjs",
     "bot:test": "node scripts/bot-test.mjs",
-    "rich-menu": "node scripts/rich-menu.mjs"
+    "rich-menu": "node scripts/rich-menu.mjs",
+    "lock-picks": "node scripts/lock-picks.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "10.7.13",

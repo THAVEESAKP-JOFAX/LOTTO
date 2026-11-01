@@ -149,7 +149,7 @@ test('webhook: ตอบ 200 ทันทีและทำงานต่อใ
 
 test('loadDraws: ยังไม่ถึงงวดถัดไปไม่ดาวน์โหลดจาก GitHub', async () => {
   const { loadDraws } = await import('../netlify/lib/data.mjs');
-  const base = draws.slice(0, -1); // งวดล่าสุดในข้อมูลนี้คือ 1 ต.ค. 2569
+  const base = draws.filter((d) => d.date <= '2026-10-01'); // งวดล่าสุดคือ 1 ต.ค. 2569
   await loadDraws('https://site.test', new Date('2026-10-05T03:00:00Z'), base);
   assert.ok(!calls.some((c) => c.url.includes('githubusercontent')));
   await loadDraws('https://site.test', new Date('2026-10-16T10:00:00Z'), base);
@@ -307,7 +307,7 @@ test('loadDraws: ดึงงวดใหม่จาก API ของกอง�
     assert.equal(r.length, base.length + 1);
     assert.equal(r.at(-1).partial, undefined);
     // API ของกองสลากยังเป็นงวดเก่า → ไม่เพิ่มงวดซ้ำ
-    glo = gloResponse(draws.at(-1));
+    glo = gloResponse(draws.find((d) => d.date === '2026-10-16'));
     r = await loadDraws('https://glo-old.test', new Date('2026-11-01T08:00:00Z'), base);
     assert.equal(r.at(-1).date, '2026-10-16');
   } finally {
@@ -338,4 +338,24 @@ test('เลขของ bot สำหรับ LINE เปลี่ยนไป
   for (const k of ['last2', 'last3', 'front3', 'first']) assert.notDeepEqual(a[k], b[k], k);
   const overlap = a.last2.filter((n) => b.last2.includes(n)).length;
   assert.ok(overlap < a.last2.length, 'เลขท้าย 2 ตัวไม่ควรซ้ำทั้งชุด');
+});
+
+test('เลขที่ล็อกล่วงหน้า: ไม่เปลี่ยนตามผลงวดใหม่ และใช้ชุดเดียวกันทั้งส่ง LINE และตรวจผล', async () => {
+  const { LOCKED_PICKS } = await import('../src/lib/locked-picks.js');
+  const dates = Object.keys(LOCKED_PICKS.draws);
+  assert.ok(dates.length >= 20, 'ควรล็อกไว้อย่างน้อยหนึ่งปี');
+  const [first, second] = dates;
+  const a = botPicksFor(second, draws);
+  assert.equal(a.locked, true);
+  assert.deepEqual(a.picks, LOCKED_PICKS.draws[second]);
+  // มีผลงวดใหม่เพิ่ม (งวด first ออกแล้ว) → เลขของงวด second ยังเหมือนเดิม
+  const withNew = [...draws, { ...draws.at(-1), date: first, first: '999999', last2: '99' }];
+  assert.deepEqual(botPicksFor(second, withNew).picks, a.picks);
+  // แต่ละงวดได้เลขต่างกัน
+  assert.notDeepEqual(LOCKED_PICKS.draws[first].first, LOCKED_PICKS.draws[second].first);
+  // งวดที่เลื่อนวัน (ไม่เกิน 3 วัน) ใช้เลขที่ล็อกของงวดตามกำหนด
+  const shifted = new Date(Date.parse(second + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10);
+  assert.deepEqual(botPicksFor(shifted, draws).picks, a.picks);
+  // เปลี่ยนกลยุทธ์ในหน้า Admin → คำนวณใหม่ (ไม่ใช้เลขที่ล็อก)
+  assert.equal(botPicksFor(second, draws, { botId: 'hot' }).locked, undefined);
 });

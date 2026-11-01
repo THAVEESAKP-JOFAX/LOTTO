@@ -9,6 +9,7 @@
 ## คำสั่ง
 - `npm run fetch-data` — ดึงข้อมูลใหม่ (2 แหล่ง + ตรวจข้าม) → `public/data/`
 - `npm run backtest` — รัน backtest ทุก bot × ทุกเกม → `public/data/backtest.json`
+- `npm run lock-picks` — ล็อกเลข bot ล่วงหน้าทุกงวด → `src/lib/locked-picks.js` (ห้ามแก้ไฟล์นี้ด้วยมือ)
 - `npm test` / `npm run dev` / `npm run build`
 - `npm run deploy` — test + build + ถามยืนยัน แล้ว deploy
 
