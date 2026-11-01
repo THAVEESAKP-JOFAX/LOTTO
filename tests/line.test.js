@@ -367,3 +367,16 @@ test('ข้อความคำสั่งไม่แสดง groupid (ค�
   assert.doesNotMatch(HELP_TEXT, /groupid/);
   assert.match(HELP_TEXT, /งวดเดือนธันวา/);
 });
+
+test('เลขประจำวัน: ปุ่มเลือกวันครบ 8 วันเสมอ รวมวันอาทิตย์', async () => {
+  const { handleEvent } = await import('../netlify/functions/line-webhook.mjs');
+  const ev = (text) => ({ type: 'message', replyToken: 'r', source: { type: 'user', userId: 'U1' }, message: { type: 'text', text } });
+  for (const t of ['เลขประจำวัน อาทิตย์', 'อาทิตย์', 'เลขประจำวัน จันทร์']) {
+    const [m] = await handleEvent(ev(t), 'https://site.test');
+    const labels = m.quickReply.items.map((i) => i.action.label);
+    assert.equal(labels.length, 8, t);
+    assert.ok(labels.includes('อาทิตย์'), t);
+  }
+  const [sun] = await handleEvent(ev('เลขประจำวันอาทิตย์'), 'https://site.test');
+  assert.match(sun.altText, /คนเกิดวันอาทิตย์\nเลขประจำวัน 1 · ศรี 4 · เดช 3/);
+});

@@ -119,7 +119,7 @@ test('เลขมงคลตามวันเกิด (ทักษา): ก
   const on = normalizeSettings({});
   const r = await handleEvent(ev('เลขประจำวัน จันทร์'), 'https://x', on);
   assert.match(r[0].altText, /วันจันทร์/);
-  assert.equal(r[0].quickReply.items.length, 7);
+  assert.equal(r[0].quickReply.items.length, 8); // ปุ่มครบทุกวัน
   assert.ok(r[0].quickReply.items.every((i) => !i.action.label.includes('กลางคืนกลางคืน')));
   assert.match((await handleEvent(ev('เลขประจำวัน'), 'https://x', on))[0].altText, /เลขมงคลคนเกิดวัน/);
   assert.match((await handleEvent(ev('พูธกลางวัน'), 'https://x', on))[0].altText, /วันพุธ \(กลางวัน\)/);

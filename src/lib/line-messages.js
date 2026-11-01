@@ -207,7 +207,7 @@ export function luckyDayMessage(day, isToday = false) {
   return {
     ...flex(alt, bubble(`${isToday ? 'วันนี้ · ' : ''}คนเกิดวัน${day.name}`, body, 'เลขมงคลประจำวันเกิด')),
     quickReply: {
-      items: DAYS.filter((d) => d.key !== day.key).map((d) => ({
+      items: DAYS.map((d) => ({ // แสดงครบทุกวันเสมอ (รวมวันที่กำลังแสดงอยู่ เช่น อาทิตย์)
         type: 'action', action: { type: 'message', label: (d.key === 'rahu' ? 'พุธกลางคืน' : d.name.replace(/ \(.*\)/, '')).slice(0, 20), text: `เลขประจำวัน ${d.aliases[0]}` },
       })),
     },
