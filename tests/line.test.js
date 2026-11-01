@@ -343,7 +343,7 @@ test('เลขของ bot สำหรับ LINE เปลี่ยนไป
 test('เลขที่ล็อกล่วงหน้า: ไม่เปลี่ยนตามผลงวดใหม่ และใช้ชุดเดียวกันทั้งส่ง LINE และตรวจผล', async () => {
   const { LOCKED_PICKS } = await import('../src/lib/locked-picks.js');
   const dates = Object.keys(LOCKED_PICKS.draws);
-  assert.ok(dates.length >= 20, 'ควรล็อกไว้อย่างน้อยหนึ่งปี');
+  assert.ok(dates.length >= 230, 'ควรล็อกไว้ล่วงหน้า 10 ปี'); assert.ok(dates.at(-1) >= '2036-12-01');
   const [first, second] = dates;
   const a = botPicksFor(second, draws);
   assert.equal(a.locked, true);
