@@ -16,9 +16,9 @@
   --good: #16a36a;
   --bad: #dc3d3d;
   --radius: 18px;
-  --serif: 'Noto Serif Thai', 'Playfair Display', serif;            /* หัวข้อ + ตัวเลขขนาดกลาง */
+  --serif: 'Noto Serif Thai', serif;                                  /* หัวข้อ + ตัวเลขขนาดกลาง */
   --sans: 'IBM Plex Sans Thai', system-ui, sans-serif;                 /* เนื้อหา + ตัวเลขในตาราง */
-  --display: 'Playfair Display', 'Noto Serif Thai', serif;        /* ตัวเลขรางวัลขนาดใหญ่ */
+  --display: 'Marcellus', 'Noto Serif Thai', serif;                  /* ตัวเลขรางวัล (Marcellus มีน้ำหนักเดียว ภาษาไทยตกมาที่ Noto Serif Thai) */
   --num: 'IBM Plex Sans Thai', system-ui, sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, monospace;
 }
@@ -1014,3 +1014,14 @@ img, svg, canvas { max-width: 100%; }
 .dc-list li.fixed { border-left-color: #e09a00; }
 .dc-list li.fail { border-left-color: #d64545; }
 .dc-list small { color: var(--muted); }
+/* ตัวเลข: ฟอนต์ Marcellus (น้ำหนักเดียว) ห้ามให้เบราว์เซอร์สังเคราะห์ตัวหนา · เลข lining กว้างเท่ากัน */
+body { font-synthesis-weight: none; font-variant-numeric: lining-nums; }
+.sub-prizes b, .table .mono, .ranks li b, #check-input, .dp-grid b { font-family: var(--display); }
+.pick .num, .latest .num, .sub-prizes b, .ticket .num, .check-head .num, .dp-first, .table .mono { font-variant-numeric: lining-nums tabular-nums; }
+/* ล็อกหน้าเว็บไซต์ (หน้า Admin) */
+.lock-card { margin-top: 20px; padding: 22px; display: grid; gap: 12px; }
+.lock-card .field-label { display: grid; gap: 6px; }
+.lock-card input[type=password], .lock-card input[type=text] { width: 100%; max-width: 360px; }
+.show-pw { display: flex; align-items: center; gap: 8px; margin-top: -4px; color: var(--muted); font-size: 13.5px; cursor: pointer; }
+.lock-card .field-hint { margin: 0; }
+.lock-card .save-bar { margin-top: 4px; }

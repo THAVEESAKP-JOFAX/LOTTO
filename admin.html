@@ -13,7 +13,7 @@
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Noto+Serif+Thai:wght@500;600;700;800&family=Playfair+Display:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Noto+Serif+Thai:wght@500;600;700;800&family=Marcellus&display=swap" rel="stylesheet" />
 </head>
 <body class="admin-page">
   <section id="login" class="login-screen" hidden>
@@ -136,6 +136,22 @@
             <button class="btn btn-primary" type="submit">บันทึกการตั้งค่า</button>
           </div>
         </form>
+
+        <div class="card lock-card" id="site-lock">
+          <div class="set-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg><div><h3>ล็อกหน้าเว็บไซต์</h3><p>ผู้เข้าชมต้องกรอกรหัสผ่านก่อนดูหน้าเว็บ · หน้าผู้ดูแลระบบนี้ไม่ถูกล็อก</p></div></div>
+          <form id="lock-form" novalidate>
+            <label class="switch"><input type="checkbox" id="lock-enabled" /><span></span>เปิดการล็อก (ต้องใส่รหัสผ่านก่อนเข้าชมหน้าเว็บ)</label>
+            <label class="field-label">รหัสผ่านของผู้เข้าชม
+              <input type="password" id="lock-password" autocomplete="new-password" maxlength="64" placeholder="อย่างน้อย 6 ตัวอักษร" />
+            </label>
+            <label class="show-pw"><input type="checkbox" id="lock-show" /> แสดงรหัสผ่าน</label>
+            <p class="field-hint" id="lock-hint">กำลังโหลด…</p>
+            <div class="save-bar">
+              <span class="status" id="lock-status" aria-live="polite"></span>
+              <button class="btn btn-primary" type="submit">บันทึกการล็อก</button>
+            </div>
+          </form>
+        </div>
       </section>
 
       <section id="line" class="section">

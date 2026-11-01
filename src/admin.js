@@ -108,6 +108,7 @@ const ROW_ICON = {
   reply: '<path d="M4 5h16v11H8l-4 4z"/><path d="M8 9.5h8M8 12.5h5"/>',
   data: '<ellipse cx="12" cy="5.5" rx="7.5" ry="2.8"/><path d="M4.5 5.5v6c0 1.6 3.4 2.8 7.5 2.8s7.5-1.2 7.5-2.8v-6M4.5 11.5v6c0 1.6 3.4 2.8 7.5 2.8s7.5-1.2 7.5-2.8v-6"/>',
   glo: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.5 5.3 3.5 8.5s-1.1 6.1-3.5 8.5c-2.4-2.4-3.5-5.3-3.5-8.5s1.1-6.1 3.5-8.5z"/>',
+  lock: '<rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>',
   manual: '<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11.5V4a1.5 1.5 0 0 1 3 0v7.5M14 11.5V5.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7h-.5a6 6 0 0 1-5.2-3l-2-3.5a1.5 1.5 0 0 1 2.6-1.5L8 15"/>',
 };
 // ไอคอนสถานะด้านขวา
@@ -161,6 +162,9 @@ function statusRows() {
       value: st.glo.ok ? 'เชื่อมต่อได้' : 'เชื่อมต่อไม่ได้',
       detail: st.glo.ok ? `ผลล่าสุดจากกองสลาก ${thDate(st.glo.date)} · รางวัลที่ 1 ${st.glo.first}`
         : `${st.glo.error} · ใช้คลังข้อมูลบน GitHub แทน (ผลอาจขึ้นช้ากว่า)` }] : []),
+    ...(st.siteLock ? [{ key: 'lock', title: 'ล็อกหน้าเว็บไซต์', level: st.siteLock.enabled ? 'ok' : 'off',
+      value: st.siteLock.enabled ? 'เปิดการล็อก' : 'ไม่ได้ล็อก',
+      detail: st.siteLock.enabled ? 'ผู้เข้าชมต้องใส่รหัสผ่านก่อนดูหน้าเว็บ' : 'ทุกคนดูหน้าเว็บได้ · เปิดล็อกได้ที่ส่วนการตั้งค่าระบบ' }] : []),
     { key: 'manual', title: 'การส่งข้อความด้วยตนเอง', level: manual.failed ? 'warn' : 'ok', value: manual.failed ? 'ครั้งล่าสุดไม่สำเร็จ' : 'พร้อมใช้งาน', detail: manual.text },
   ];
 }
@@ -276,6 +280,48 @@ async function installMenu(b) {
 
 // ---------- เข้าสู่ระบบ ----------
 let rendered = false;
+// ล็อกหน้าเว็บสำหรับผู้เข้าชม: เปิด/ปิดและตั้งรหัสผ่าน (รหัสผ่านไม่เคยถูกส่งกลับมาแสดง)
+const siteLock = { bound: false, state: null };
+function renderSiteLock() {
+  const st = siteLock.state;
+  if (!st) return;
+  $('#lock-enabled').checked = st.enabled;
+  $('#lock-hint').textContent = st.hasPassword
+    ? `ตั้งรหัสผ่านไว้แล้ว${st.updatedAt ? ` · ปรับปรุงล่าสุด ${fmtTime(st.updatedAt)}` : ''} · เว้นช่องรหัสผ่านไว้ถ้าไม่ต้องการเปลี่ยน · เปลี่ยนรหัสผ่านแล้วผู้เข้าชมต้องกรอกใหม่`
+    : 'ยังไม่ได้ตั้งรหัสผ่าน · กรอกรหัสผ่านที่ต้องการแล้วกดบันทึก';
+}
+async function initSiteLock() {
+  const status = $('#lock-status');
+  try {
+    siteLock.state = await api('/api/admin/site-lock');
+    renderSiteLock();
+  } catch (err) {
+    $('#lock-hint').textContent = `โหลดสถานะการล็อกไม่สำเร็จ: ${err.message}`;
+  }
+  if (siteLock.bound) return;
+  siteLock.bound = true;
+  $('#lock-show').addEventListener('change', (e) => { $('#lock-password').type = e.target.checked ? 'text' : 'password'; });
+  $('#lock-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const enabled = $('#lock-enabled').checked;
+    const password = $('#lock-password').value;
+    if (enabled && !siteLock.state?.hasPassword && !password) { status.textContent = '✗ กรุณากรอกรหัสผ่านก่อนเปิดการล็อก'; return; }
+    if (password && password.length < 6) { status.textContent = '✗ รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร'; return; }
+    status.textContent = 'กำลังบันทึก…';
+    try {
+      siteLock.state = await api('/api/admin/site-lock', { method: 'POST', body: JSON.stringify({ enabled, ...(password ? { password } : {}) }) });
+      $('#lock-password').value = '';
+      renderSiteLock();
+      status.textContent = siteLock.state.enabled
+        ? '✓ เปิดการล็อกแล้ว ผู้เข้าชมต้องใส่รหัสผ่าน (มีผลภายใน 30 วินาที)'
+        : '✓ ปิดการล็อกแล้ว ทุกคนดูหน้าเว็บได้ (มีผลภายใน 30 วินาที)';
+      loadStatus();
+    } catch (err) {
+      status.textContent = `✗ ${err.message}`;
+    }
+  });
+}
+
 // ความถูกต้องของข้อมูล: งวดที่ 2 แหล่งไม่ตรงกัน/ไม่ครบ (validation.json) → ตรวจกับผลทางการของกองสลาก
 const PRIZE_TH = { first: 'รางวัลที่ 1', near: 'ข้างเคียง', second: 'รางวัลที่ 2', third: 'รางวัลที่ 3', fourth: 'รางวัลที่ 4',
   fifth: 'รางวัลที่ 5', front3: 'เลขหน้า 3 ตัว', last3: 'เลขท้าย 3 ตัว', last2: 'เลขท้าย 2 ตัว' };
@@ -339,6 +385,7 @@ async function showAdmin() {
   loadStatus();
   $('#status-refresh').addEventListener('click', loadStatus);
   initDataCheck();
+  initSiteLock();
   const { draws, backtest } = await load();
   dash.draws = draws;
   renderDash();

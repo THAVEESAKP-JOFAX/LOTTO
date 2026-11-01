@@ -61,3 +61,11 @@ export async function writeJSON(key, value) {
     console.error('cache', err.message);
   }
 }
+
+// เวอร์ชันที่ไม่กลบข้อผิดพลาด: ใช้กับสิ่งที่ต้องรู้ว่าอ่าน/เขียนสำเร็จจริง (เช่น การล็อกเว็บไซต์)
+export async function readJSONStrict(key) {
+  return (await store().get(key, { type: 'json' })) ?? null;
+}
+export async function writeJSONStrict(key, value) {
+  await store().setJSON(key, value);
+}

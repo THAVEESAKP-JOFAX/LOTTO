@@ -387,7 +387,7 @@ function show(res, k) {
       const { ctx, chartArea: a } = c;
       const x = (a.left + a.right) / 2; const y = (a.top + a.bottom) / 2;
       ctx.save(); ctx.textAlign = 'center'; ctx.fillStyle = INK.text;
-      ctx.font = '700 34px "Playfair Display", serif'; ctx.fillText(String(totalHits), x, y + 4);
+      ctx.font = '400 34px "Marcellus", serif'; ctx.fillText(String(totalHits), x, y + 4);
       ctx.fillStyle = INK.muted; ctx.font = '500 13px "IBM Plex Sans Thai", sans-serif'; ctx.fillText('ครั้งที่ตรงกับผลรางวัล', x, y + 26);
       ctx.restore();
     },
