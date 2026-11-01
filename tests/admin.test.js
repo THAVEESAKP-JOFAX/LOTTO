@@ -444,3 +444,56 @@ test('LINE: "ขอ งวดเดือน ธันวา" ตอบทุก
     assert.equal(await ask('ขอบคุณครับ'), null);
   } finally { globalThis.fetch = realFetch; }
 });
+
+test('ตรวจข้อมูลกับกองสลาก: แก้งวดที่ไม่ตรง/ไม่ครบด้วยผลทางการ และหน้าเว็บ/LINE ใช้ข้อมูลที่แก้แล้ว', async () => {
+  const { setSettingsStore } = await import('../netlify/lib/settings.mjs');
+  const { loadDraws, GLO_BY_DATE } = await import('../netlify/lib/data.mjs');
+  const { default: verify } = await import('../netlify/functions/admin-verify-data.mjs');
+  const mem = new Map();
+  setSettingsStore({ get: async (k) => mem.get(k) ?? null, setJSON: async (k, v) => { mem.set(k, JSON.parse(JSON.stringify(v))); } });
+  const base = draws.filter((d) => d.date <= '2026-10-16');
+  const target = base.find((d) => d.date === '2026-07-01');
+  // ข้อมูลจากคลังผิด 1 ตัวในรางวัลที่ 5 · ผลทางการถูกต้อง
+  const wrong = base.map((d) => (d.date === target.date ? { ...d, fifth: ['000000', ...d.fifth.slice(1)] } : d));
+  const glo = (d) => ({ response: { result: { date: d.date, data: Object.fromEntries(Object.entries({
+    first: [d.first], near1: d.near, second: d.second, third: d.third, fourth: d.fourth, fifth: d.fifth,
+    last3f: d.front3, last3b: d.last3, last2: [d.last2] }).map(([k, v]) => [k, { number: v.map((value) => ({ value })) }])) } } });
+  const asked = [];
+  const env = { ...process.env };
+  process.env.URL = 'https://verify.test'; process.env.ALERT_ADMIN_KEY = 'k';
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts = {}) => {
+    const u = String(url);
+    if (u.endsWith('/data/validation.json')) return new Response(JSON.stringify({ mismatch: [{ date: target.date }], structuralIssues: [{ date: '2026-01-16' }] }));
+    if (u.endsWith('/data/draws.json')) return new Response(JSON.stringify({ draws: wrong }));
+    if (u === GLO_BY_DATE) {
+      const { date, month, year } = JSON.parse(opts.body);
+      asked.push(`${year}-${month}-${date}`);
+      if (`${year}-${month}-${date}` === '2026-01-16') throw new TypeError('fetch failed');
+      return new Response(JSON.stringify(glo(target)));
+    }
+    return new Response('', { status: 404 });
+  };
+  try {
+    assert.equal((await verify(new Request('https://verify.test/api/admin/verify-data', { method: 'POST' }))).status, 401);
+    const res = await verify(new Request('https://verify.test/api/admin/verify-data', { method: 'POST', headers: { 'x-admin-key': 'k' } }));
+    const body = await res.json();
+    assert.deepEqual(asked.sort(), ['2026-01-16', '2026-07-01']);
+    assert.equal(body.flagged, 2);
+    assert.equal(body.verified, 1);
+    assert.equal(body.failed, 1);
+    assert.deepEqual(body.report.find((r) => r.date === target.date).fixed, ['fifth']);
+    // โหลดผลครั้งถัดไป (หน้าเว็บ/LINE) ได้รางวัลที่ 5 ที่ถูกต้อง
+    const loaded = await loadDraws('https://verify.test', new Date('2026-10-20T03:00:00Z'), wrong);
+    const fixed = loaded.find((d) => d.date === target.date);
+    assert.deepEqual([...fixed.fifth].sort(), [...target.fifth].sort());
+    assert.equal(fixed.source, 'glo-official');
+    // งวดที่ตรวจแล้วไม่ถามซ้ำ (เหลือเฉพาะงวดที่ยังไม่สำเร็จ)
+    asked.length = 0;
+    await verify(new Request('https://verify.test/api/admin/verify-data', { method: 'POST', headers: { 'x-admin-key': 'k' } }));
+    assert.deepEqual(asked, ['2026-01-16']);
+  } finally {
+    globalThis.fetch = realFetch; process.env = env;
+    setSettingsStore({ get: async () => null, setJSON: async () => {} });
+  }
+});

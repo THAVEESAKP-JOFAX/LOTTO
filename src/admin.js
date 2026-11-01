@@ -201,6 +201,7 @@ async function loadStatus() {
     if (!data?.line || !data?.settings) throw new Error('ข้อมูลสถานะไม่ครบ');
     dash.status = { activity: {}, ...data };
     renderStatus();
+    renderDataCheck();
   } catch (err) {
     $('#status-checked').textContent = `✗ ตรวจสอบสถานะไม่สำเร็จ: ${err.message}`;
   }
@@ -275,6 +276,56 @@ async function installMenu(b) {
 
 // ---------- เข้าสู่ระบบ ----------
 let rendered = false;
+// ความถูกต้องของข้อมูล: งวดที่ 2 แหล่งไม่ตรงกัน/ไม่ครบ (validation.json) → ตรวจกับผลทางการของกองสลาก
+const PRIZE_TH = { first: 'รางวัลที่ 1', near: 'ข้างเคียง', second: 'รางวัลที่ 2', third: 'รางวัลที่ 3', fourth: 'รางวัลที่ 4',
+  fifth: 'รางวัลที่ 5', front3: 'เลขหน้า 3 ตัว', last3: 'เลขท้าย 3 ตัว', last2: 'เลขท้าย 2 ตัว' };
+const dc = { flagged: [], validation: null };
+function renderDataCheck() {
+  const v = dc.validation;
+  if (!v) return;
+  const verified = new Set(dash.status?.official?.dates ?? []);
+  const left = dc.flagged.filter((d) => !verified.has(d)).length;
+  $('#dc-summary').textContent = `ตรวจข้าม 2 แหล่ง ${v.range.draws} งวด: ตรงกัน ${v.match} งวด · รางวัลย่อยไม่ตรงกัน ${v.mismatch.length} งวด · ` +
+    `ข้อมูลไม่ครบ ${v.structuralIssues.length} งวด · ยืนยันกับกองสลากแล้ว ${dc.flagged.length - left}/${dc.flagged.length} งวด`;
+  $('#dc-run').textContent = left ? `ตรวจกับผลทางการของกองสลาก (${left} งวด)` : 'ตรวจครบแล้ว';
+  $('#dc-run').disabled = !left;
+}
+async function initDataCheck() {
+  try {
+    dc.validation = await (await fetch('/data/validation.json')).json();
+    dc.flagged = [...new Set([...dc.validation.mismatch, ...dc.validation.structuralIssues].map((x) => x.date))];
+    renderDataCheck();
+  } catch {
+    $('#dc-summary').textContent = 'โหลดผลการตรวจข้ามไม่สำเร็จ';
+  }
+  if (dc.bound) return; // เข้าสู่ระบบซ้ำ → ไม่ผูกปุ่มซ้ำ
+  dc.bound = true;
+  $('#dc-run').addEventListener('click', async () => {
+    const btn = $('#dc-run'); const status = $('#dc-status');
+    btn.disabled = true;
+    const rows = [];
+    try {
+      for (let r; ;) {
+        status.textContent = `กำลังตรวจกับกองสลาก… (${rows.length} งวด)`;
+        r = await api('/api/admin/verify-data', { method: 'POST', body: '{}' });
+        rows.push(...r.report);
+        // หยุดเมื่อครบ หรือรอบนี้ตรวจไม่สำเร็จเลย (เช่น เชื่อมต่อกองสลากไม่ได้) เพื่อไม่วนซ้ำ
+        if (!r.remaining || !r.verified) break;
+      }
+      const ok = rows.filter((x) => x.ok); const fixed = ok.filter((x) => x.fixed.length); const bad = rows.filter((x) => !x.ok);
+      status.textContent = rows.length
+        ? `${bad.length ? '⚠' : '✓'} ยืนยันแล้ว ${ok.length} งวด · แก้ข้อมูล ${fixed.length} งวด${bad.length ? ` · ไม่สำเร็จ ${bad.length} งวด` : ''} · มีผลกับหน้าเว็บและ LINE ภายใน 10 นาที`
+        : '✓ ไม่มีงวดที่ต้องตรวจเพิ่ม';
+      $('#dc-list').innerHTML = rows.map((x) => `<li class="${x.ok ? (x.fixed.length ? 'fixed' : 'ok') : 'fail'}"><b>${thDate(x.date)}</b><small>${
+        x.ok ? (x.fixed.length ? `แก้ ${x.fixed.map((k) => PRIZE_TH[k]).join(', ')} ตามผลทางการ` : 'ตรงกับผลทางการ') : x.error}</small></li>`).join('');
+    } catch (err) {
+      status.textContent = `✗ ${err.message}`;
+    }
+    await loadStatus();
+    renderDataCheck();
+  });
+}
+
 async function showAdmin() {
   $('#login').hidden = true;
   $('#admin').hidden = false;
@@ -287,6 +338,7 @@ async function showAdmin() {
   scrollSpy('.side-nav');
   loadStatus();
   $('#status-refresh').addEventListener('click', loadStatus);
+  initDataCheck();
   const { draws, backtest } = await load();
   dash.draws = draws;
   renderDash();

@@ -14,15 +14,62 @@ async function text(url, timeoutMs = 5000) {
 
 // ผลงวดล่าสุดจากสำนักงานสลากกินแบ่งรัฐบาลโดยตรง (POST เท่านั้น)
 export const GLO_LATEST = 'https://www.glo.or.th/api/lottery/getLatestLottery';
-export async function latestFromGlo(timeoutMs = 6000) {
-  const res = await fetch(GLO_LATEST, {
-    method: 'POST', body: '{}', signal: AbortSignal.timeout(timeoutMs),
+export const GLO_BY_DATE = 'https://www.glo.or.th/api/checking/getLotteryResult';
+async function gloPost(url, body, timeoutMs) {
+  const res = await fetch(url, {
+    method: 'POST', body: JSON.stringify(body), signal: AbortSignal.timeout(timeoutMs),
     headers: { 'content-type': 'application/json', accept: 'application/json' },
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const r = (await res.json())?.response;
+  return (await res.json())?.response;
+}
+
+export async function latestFromGlo(timeoutMs = 6000) {
+  const r = await gloPost(GLO_LATEST, {}, timeoutMs);
   if (!r?.date) throw new Error('รูปแบบข้อมูลไม่ตรง');
   return fromGloResult(r);
+}
+
+// ผลทางการของงวดที่ระบุ (ใช้แก้งวดที่ 2 แหล่งข้อมูลไม่ตรงกันหรือข้อมูลไม่ครบ)
+export async function officialDraw(date, timeoutMs = 6000) {
+  const [year, month, day] = date.split('-');
+  const r = (await gloPost(GLO_BY_DATE, { date: day, month, year }, timeoutMs))?.result;
+  if (!r?.data?.first) throw new Error('ไม่พบผลของงวดนี้');
+  const d = fromGloResult({ ...r, date });
+  const issues = checkDraw(d);
+  if (issues.length) throw new Error(`ข้อมูลไม่ครบ (${issues.join(', ')})`);
+  return d;
+}
+
+// ผลทางการที่ตรวจแล้ว เก็บใน Netlify Blobs และใช้แทนข้อมูลจากคลังบน GitHub ของงวดเดียวกัน
+export const OFFICIAL_KEY = 'official-draws';
+const PRIZE_KEYS = ['first', 'near', 'second', 'third', 'fourth', 'fifth', 'front3', 'last3', 'last2'];
+const same = (a, b) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
+
+export async function verifyWithGlo(dates, current = [], { concurrency = 4 } = {}) {
+  const saved = (await readJSON(OFFICIAL_KEY)) ?? { draws: {} };
+  const byDate = new Map(current.map((d) => [d.date, d]));
+  const report = [];
+  const queue = [...new Set(dates)];
+  await Promise.all(Array.from({ length: concurrency }, async () => {
+    for (let date; (date = queue.shift());) {
+      try {
+        const d = await officialDraw(date);
+        const old = byDate.get(date);
+        const fixed = old ? PRIZE_KEYS.filter((k) => !same([].concat(old[k] ?? []), [].concat(d[k]))) : PRIZE_KEYS;
+        saved.draws[date] = { ...d, source: 'glo-official' };
+        report.push({ date, ok: true, fixed });
+      } catch (err) {
+        report.push({ date, ok: false, error: err.name === 'TimeoutError' ? 'หมดเวลาเชื่อมต่อ' : err.message });
+      }
+    }
+  }));
+  report.sort((a, b) => a.date.localeCompare(b.date));
+  const summary = { checkedAt: new Date().toISOString(), checked: report.length,
+    verified: report.filter((r) => r.ok).length, corrected: report.filter((r) => r.ok && r.fixed.length).length,
+    failed: report.filter((r) => !r.ok).length };
+  await writeJSON(OFFICIAL_KEY, { draws: saved.draws, last: { ...summary, report } });
+  return { ...summary, report };
 }
 
 // ใช้ในแผงสถานะหน้า Admin: ทดสอบว่าเรียก API ของกองสลากจาก Netlify ได้จริงหรือไม่
@@ -51,7 +98,10 @@ const RECHECK_MS = 15 * 60e3;
 // งวดใหม่ที่ออกหลัง deploy จะเก็บไว้ใน Netlify Blobs เพื่อไม่ต้องดาวน์โหลดไฟล์ผลจาก GitHub (~450KB) ทุกครั้ง
 // · ยังไม่ใกล้งวดถัดไป → ใช้ข้อมูลที่มีเลย · ใกล้/ถึงวันออกรางวัล → เช็กแหล่งข้อมูลไม่บ่อยกว่าทุก 15 นาที
 export async function loadDraws(siteUrl = process.env.URL, now = new Date(), baseDraws = null) {
-  const base = baseDraws ?? await baseFromSite(siteUrl, now);
+  const loaded = baseDraws ?? await baseFromSite(siteUrl, now);
+  // งวดที่ตรวจกับกองสลากแล้ว (verifyWithGlo) ใช้ผลทางการแทน
+  const official = (await readJSON(OFFICIAL_KEY))?.draws ?? {};
+  const base = loaded.map((d) => official[d.date] ?? d);
   const baseLast = base.at(-1).date;
   const cacheKey = `fresh-draws:${siteUrl}`;
   const cached = await readJSON(cacheKey);
