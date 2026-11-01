@@ -39,6 +39,25 @@ export function fromPrimaryRow(r) {
   };
 }
 
+// API ของสำนักงานสลากกินแบ่งรัฐบาล (getLatestLottery → response, getLotteryResult → response.result)
+// รูปแบบ: { date: 'YYYY-MM-DD', data: { first: { number: [{ value }] }, near1, second, ..., last3f, last3b, last2 } }
+export function fromGloResult(r) {
+  const nums = (k) => (r?.data?.[k]?.number ?? []).map((n) => String(n.value ?? '').trim()).filter(Boolean).sort();
+  const two = nums('last2')[0];
+  return {
+    date: String(r?.date ?? '').slice(0, 10),
+    first: nums('first')[0] ?? '',
+    near: nums('near1'),
+    second: nums('second'),
+    third: nums('third'),
+    fourth: nums('fourth'),
+    fifth: nums('fifth'),
+    front3: nums('last3f'),
+    last3: nums('last3b'),
+    last2: two ? two.padStart(2, '0') : '',
+  };
+}
+
 export function fromArchiveText(date, text) {
   const map = {};
   for (const line of text.split('\n').slice(1)) {

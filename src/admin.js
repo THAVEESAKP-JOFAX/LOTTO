@@ -133,7 +133,7 @@ function statusRows() {
     { key: 'groups', title: 'กลุ่มที่รับการแจ้งเตือน', level: line.groups ? 'ok' : 'warn', value: line.groups ? `${line.groups} กลุ่ม` : 'ยังไม่ได้กำหนด',
       detail: line.groups ? 'กำหนดไว้ใน LINE_GROUP_IDS' : 'เพิ่ม Group ID ใน LINE_GROUP_IDS เพื่อรับการแจ้งเตือนอัตโนมัติ' },
     { key: 'picks', title: 'ส่งชุดตัวเลขแนะนำอัตโนมัติ', ...auto(settings.autoPicks, activity.picks, `รอบถัดไป ${nextText} เวลา 09:00 น.`) },
-    { key: 'result', title: 'ประกาศผลรางวัลอัตโนมัติ', ...auto(settings.autoResult, activity.result, `รอบถัดไป ${nextText} ช่วง 15:30–18:30 น.`) },
+    { key: 'result', title: 'ประกาศผลรางวัลอัตโนมัติ', ...auto(settings.autoResult, activity.result, `รอบถัดไป ${nextText} ช่วง 15:00–22:30 น.`) },
     settings.commands
       ? { key: 'reply', title: 'ตอบกลับคำสั่งในกลุ่ม', level: !lineReady || reply.failed ? 'error' : 'ok', value: reply.failed ? 'ตอบกลับไม่สำเร็จ' : 'เปิดใช้งาน', detail: reply.text }
       : { key: 'reply', title: 'ตอบกลับคำสั่งในกลุ่ม', level: 'off', value: 'ปิดใช้งาน', detail: 'bot จะไม่ตอบคำสั่งในกลุ่ม (ยกเว้น groupid)' },

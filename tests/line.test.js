@@ -263,3 +263,71 @@ test('loadDraws: งวดใหม่เก็บในแคช ไม่ด�
     setSettingsStore({ get: async () => null, setJSON: async () => {} });
   }
 });
+
+// รูปแบบข้อมูลจาก API ของกองสลาก (glo.or.th)
+const gloResponse = (d, keys = ['first', 'near1', 'second', 'third', 'fourth', 'fifth', 'last3f', 'last3b', 'last2']) => {
+  const field = { first: [d.first], near1: d.near, second: d.second, third: d.third, fourth: d.fourth, fifth: d.fifth, last3f: d.front3, last3b: d.last3, last2: [d.last2] };
+  const data = Object.fromEntries(keys.map((k) => [k, { price: '0', number: field[k].map((value, i) => ({ round: i + 1, value })) }]));
+  return { statusCode: 200, status: true, response: { date: d.date, data } };
+};
+
+test('fromGloResult: แปลงผลจาก API ของกองสลากเป็นรูปแบบเดียวกับแหล่งอื่น', async () => {
+  const { fromGloResult, checkDraw } = await import('../src/lib/parse.js');
+  const full = draws.at(-1);
+  const d = fromGloResult(gloResponse(full).response);
+  assert.deepEqual(checkDraw(d), []);
+  for (const k of ['date', 'first', 'near', 'second', 'third', 'fourth', 'fifth', 'front3', 'last3', 'last2']) assert.deepEqual(d[k], full[k], k);
+  assert.equal(fromGloResult({ date: '2026-11-01', data: {} }).first, '');
+});
+
+test('loadDraws: ดึงงวดใหม่จาก API ของกองสลากก่อน แม้คลังบน GitHub ยังไม่อัปเดต', async () => {
+  const { loadDraws, GLO_LATEST } = await import('../netlify/lib/data.mjs');
+  const mem = new Map();
+  setSettingsStore({ get: async (k) => mem.get(k) ?? null, setJSON: async (k, v) => { mem.set(k, JSON.parse(JSON.stringify(v))); } });
+  const base = draws.filter((d) => d.date <= '2026-10-16');
+  const nov1 = { ...draws.at(-1), date: '2026-11-01', first: '423224', near: ['423223', '423225'], front3: ['300', '950'], last3: ['393', '804'], last2: '85' };
+  let glo = gloResponse(nov1, ['first', 'near1', 'last3f', 'last3b', 'last2']); // ระหว่างถ่ายทอดสด: รางวัลย่อยยังไม่ครบ
+  const seen = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts = {}) => {
+    seen.push({ url: String(url), method: opts.method ?? 'GET' });
+    if (String(url) === GLO_LATEST) return new Response(JSON.stringify(glo));
+    return new Response('not found', { status: 404 });
+  };
+  try {
+    let r = await loadDraws('https://glo.test', new Date('2026-11-01T08:30:00Z'), base);
+    assert.equal(r.at(-1).date, '2026-11-01');
+    assert.equal(r.at(-1).first, '423224');
+    assert.equal(r.at(-1).last2, '85');
+    assert.equal(r.at(-1).source, 'glo-api');
+    assert.equal(r.at(-1).partial, true);
+    assert.ok(seen.some((c) => c.url === GLO_LATEST && c.method === 'POST'));
+    glo = gloResponse(nov1); // ประกาศครบทุกรางวัลแล้ว → รอบถัดไปแทนที่ข้อมูลเดิม
+    r = await loadDraws('https://glo.test', new Date('2026-11-01T09:00:00Z'), base);
+    assert.equal(r.length, base.length + 1);
+    assert.equal(r.at(-1).partial, undefined);
+    // API ของกองสลากยังเป็นงวดเก่า → ไม่เพิ่มงวดซ้ำ
+    glo = gloResponse(draws.at(-1));
+    r = await loadDraws('https://glo-old.test', new Date('2026-11-01T08:00:00Z'), base);
+    assert.equal(r.at(-1).date, '2026-10-16');
+  } finally {
+    globalThis.fetch = realFetch;
+    setSettingsStore({ get: async () => null, setJSON: async () => {} });
+  }
+});
+
+test('loadDraws: API ของกองสลากล่ม → ใช้คลังบน GitHub แทน', async () => {
+  const { loadDraws, GLO_LATEST } = await import('../netlify/lib/data.mjs');
+  const base = draws.filter((d) => d.date < '2026-10-16');
+  const csv = 'date,first,second,third,fourth,fifth,last2,last3f,last3b,near1\n2026-10-16,011781,,,,,48,"392,402","171,255","011780,011782"\n';
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (String(url) === GLO_LATEST) throw new TypeError('fetch failed');
+    return String(url).endsWith('.csv') ? new Response(csv) : new Response('', { status: 404 });
+  };
+  try {
+    const r = await loadDraws('https://glo-down.test', new Date('2026-10-16T10:00:00Z'), base);
+    assert.equal(r.at(-1).date, '2026-10-16');
+    assert.equal(r.at(-1).source, 'glo');
+  } finally { globalThis.fetch = realFetch; }
+});

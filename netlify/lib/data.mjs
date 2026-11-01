@@ -1,5 +1,5 @@
 // โหลดผลสลาก: ประวัติ 10 ปีจากไฟล์ของเว็บ + งวดใหม่ที่ออกหลัง deploy ล่าสุด (ไม่ต้อง deploy ใหม่)
-import { parseCsv, fromPrimaryRow, fromArchiveText, checkDraw } from '../../src/lib/parse.js';
+import { parseCsv, fromPrimaryRow, fromArchiveText, fromGloResult, checkDraw } from '../../src/lib/parse.js';
 import { todayInThailand, nextDrawDate } from '../../src/lib/schedule.js';
 import { readJSON, writeJSON } from './settings.mjs';
 
@@ -10,6 +10,18 @@ const mainOk = (d) => !checkDraw(d).some((i) => /^(first|last2|front3|last3)/.te
 async function text(url, timeoutMs = 5000) {
   const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
   return res.ok ? res.text() : null;
+}
+
+// ผลงวดล่าสุดจากสำนักงานสลากกินแบ่งรัฐบาลโดยตรง (POST เท่านั้น)
+export const GLO_LATEST = 'https://www.glo.or.th/api/lottery/getLatestLottery';
+async function latestFromGlo(timeoutMs = 6000) {
+  const res = await fetch(GLO_LATEST, {
+    method: 'POST', body: '{}', signal: AbortSignal.timeout(timeoutMs),
+    headers: { 'content-type': 'application/json', accept: 'application/json' },
+  });
+  if (!res.ok) return null;
+  const r = (await res.json())?.response;
+  return r?.date ? fromGloResult(r) : null;
 }
 
 // ไฟล์ประวัติจากเว็บเปลี่ยนเฉพาะตอน deploy: จำไว้ 5 นาทีในหน่วยความจำของ function
@@ -52,13 +64,17 @@ export async function loadDraws(siteUrl = process.env.URL, now = new Date(), bas
     if (i < 0) fresh.push(d);
     else if (fresh[i].partial && !d.partial) fresh[i] = d;
   };
+  // 1) API ของกองสลาก: ได้ผลทันทีที่ประกาศ (ระหว่างถ่ายทอดสดรางวัลย่อยอาจยังไม่ครบ → เก็บเป็น partial แล้วอัปเดตรอบถัดไป)
+  const glo = await latestFromGlo().catch(() => null);
+  if (glo && glo.date > baseLast && !complete.has(glo.date) && mainOk(glo)) upsert({ ...glo, source: 'glo-api' });
+  // 2) คลังข้อมูลบน GitHub: ใช้ตรวจข้าม/สำรองเมื่อ API ของกองสลากเรียกไม่ได้
   const csv = await text(PRIMARY).catch(() => null);
   if (csv) {
     for (const d of parseCsv(csv).map(fromPrimaryRow)) {
       if (d.date > baseLast && !complete.has(d.date) && mainOk(d)) upsert({ ...d, source: 'glo' });
     }
   }
-  // คลังสำรองมักอัปเดตเร็วกว่า: ลองดูงวดของวันนี้ (เวลาไทย)
+  // 3) คลังสำรองบน GitHub: ลองดูงวดของวันนี้ (เวลาไทย)
   if (today > baseLast && !complete.has(today) && !fresh.some((d) => d.date === today)) {
     const t = await text(ARCHIVE(today)).catch(() => null);
     const d = t && fromArchiveText(today, t);
