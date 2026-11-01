@@ -356,6 +356,8 @@ test('เลขที่ล็อกล่วงหน้า: ไม่เปล
   // งวดที่เลื่อนวัน (ไม่เกิน 3 วัน) ใช้เลขที่ล็อกของงวดตามกำหนด
   const shifted = new Date(Date.parse(second + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10);
   assert.deepEqual(botPicksFor(shifted, draws).picks, a.picks);
-  // เปลี่ยนกลยุทธ์ในหน้า Admin → คำนวณใหม่ (ไม่ใช้เลขที่ล็อก)
-  assert.equal(botPicksFor(second, draws, { botId: 'hot' }).locked, undefined);
+  // สุ่มล้วน: ใช้ชุดที่ล็อกแม้เลือกกลยุทธ์อื่นไว้ · เปลี่ยนจำนวนเลข → คำนวณใหม่
+  assert.equal(LOCKED_PICKS.botId, 'random');
+  assert.equal(botPicksFor(second, draws, { botId: 'hot' }).locked, true);
+  assert.equal(botPicksFor(second, draws, { botId: 'hot', picks: { last2: 7 } }).locked, undefined);
 });

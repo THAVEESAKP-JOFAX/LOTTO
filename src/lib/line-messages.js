@@ -49,10 +49,11 @@ export function botPicksFor(drawDate, draws, settings = DEFAULT_SETTINGS) {
   const history = draws.filter((d) => d.date < drawDate);
   const botId = settings.botId ?? DEFAULT_SETTINGS.botId;
   const counts = { ...ALERT_PICKS, ...(settings.picks ?? {}) };
-  // เลขที่ล็อกไว้ล่วงหน้า (scripts/lock-picks.mjs) ใช้เมื่อกลยุทธ์และจำนวนเลขตรงกับตอนล็อก
+  // เลขที่ล็อกไว้ล่วงหน้า (scripts/lock-picks.mjs · สุ่มล้วน) ใช้เสมอเมื่อจำนวนเลขตรงกับตอนล็อก
+  // กลยุทธ์ในหน้าตั้งค่ามีผลเฉพาะงวดที่ไม่ได้ล็อก
   const locked = lockedFor(drawDate);
-  if (locked && botId === LOCKED_PICKS.botId && sameCounts(counts, LOCKED_PICKS.counts)) {
-    return { drawDate, picks: structuredClone(locked), botId, history, locked: true };
+  if (locked && sameCounts(counts, LOCKED_PICKS.counts)) {
+    return { drawDate, picks: structuredClone(locked), botId: LOCKED_PICKS.botId, history, locked: true };
   }
   // สุ่มถ่วงน้ำหนักตามคะแนนของ bot (seed ตามวันที่งวด): แต่ละงวดได้ชุดใหม่ แต่ถามซ้ำในงวดเดียวกันได้เลขเดิม
   // (โหมด analyze เลือกคะแนนสูงสุดเสมอ คะแนนจากประวัติ 10 ปีแทบไม่เปลี่ยน → เลขซ้ำกันทุกงวด)

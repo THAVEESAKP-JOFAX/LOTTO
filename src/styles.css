@@ -1005,3 +1005,4 @@ img, svg, canvas { max-width: 100%; }
 .locked-table th { position: sticky; top: 0; background: var(--surface, #fff); z-index: 1; }
 .locked-table td, .locked-table th { white-space: nowrap; }
 @media (max-width: 560px) { .locked-card { padding: 16px 14px; } }
+.field-hint { margin: -4px 0 12px; color: var(--muted); font-size: 12.5px; }

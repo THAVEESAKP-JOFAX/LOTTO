@@ -1,4 +1,5 @@
-// ล็อกเลขของ bot ล่วงหน้าทุกงวด (ถึงสิ้นปีที่กำหนด) จากผลที่ออกแล้วทั้งหมด ณ ตอนนี้
+// ล็อกเลขล่วงหน้าทุกงวด (ถึงสิ้นปีที่กำหนด) โดยสุ่มล้วน: ทุกตัวเลขมีโอกาสเท่ากัน ไม่ถ่วงน้ำหนักตามสถิติ
+// (ผล backtest: ไม่มีสูตรใดดีกว่าการสุ่ม) · seed ตามวันที่งวด จึงสร้างซ้ำได้ชุดเดิม
 // เลขที่ล็อกไว้จะไม่เปลี่ยนตามผลงวดใหม่ · ส่ง LINE / ตอบคำสั่ง / ตรวจผล ใช้ชุดเดียวกัน
 //   npm run lock-picks            → ถึงสิ้นปีถัดไป
 //   npm run lock-picks -- 2028    → ถึงสิ้นปี ค.ศ. 2028
@@ -10,7 +11,7 @@ import { nextDrawDate } from '../src/lib/schedule.js';
 const draws = JSON.parse(await readFile(new URL('../public/data/draws.json', import.meta.url), 'utf8')).draws;
 const last = draws.at(-1).date;
 const untilYear = Number(process.argv[2]) || Number(last.slice(0, 4)) + 1;
-const botId = DEFAULT_SETTINGS.botId;
+const botId = 'random';
 const counts = Object.fromEntries(Object.keys(ALERT_PICKS).map((k) => [k, DEFAULT_SETTINGS.picks[k]]));
 
 const out = {};
