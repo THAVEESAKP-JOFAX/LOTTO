@@ -361,3 +361,9 @@ test('เลขที่ล็อกล่วงหน้า: ไม่เปล
   assert.equal(botPicksFor(second, draws, { botId: 'hot' }).locked, true);
   assert.equal(botPicksFor(second, draws, { botId: 'hot', picks: { last2: 7 } }).locked, undefined);
 });
+
+test('ข้อความคำสั่งไม่แสดง groupid (คำสั่งสำหรับผู้ดูแล ยังใช้ได้)', async () => {
+  const { HELP_TEXT } = await import('../src/lib/line-messages.js');
+  assert.doesNotMatch(HELP_TEXT, /groupid/);
+  assert.match(HELP_TEXT, /งวดเดือนธันวา/);
+});
